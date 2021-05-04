@@ -27,4 +27,4 @@ async def on_message(message):
         await channel.send(f"{message.author} sent:\n```{message.content}```\n{message.attachments[0].url}")
     await bot.process_commands(message)
 
-bot.run('ODM5MDU0OTcyMjc2MTc4OTQ0.YJEE1g.-i1tsNmfczwvvc_Oz9T7eVchGZ4')
+bot.run('TOKEN')
