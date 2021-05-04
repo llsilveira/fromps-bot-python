@@ -5,3 +5,4 @@
 - Syslog-style log to file
 - Help command
 - User tutorial
+- Windows service running on background
