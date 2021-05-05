@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 # This example requires the 'members' privileged intents
 
+import config
+
 import discord
 from discord.ext import commands
 from benedict import benedict
-
-import os
-from dotenv import load_dotenv
 
 intents = discord.Intents.default()
 intents.members = True
@@ -50,5 +49,4 @@ async def on_message(message):
 g = benedict.from_yaml('games.yaml')
 
 if __name__ == '__main__':
-    load_dotenv()
-    bot.run(os.environ.get("DISCORD_TOKEN", ""))
+    bot.run(config.DISCORD_TOKEN)
