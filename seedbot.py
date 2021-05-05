@@ -5,6 +5,9 @@ import discord
 from discord.ext import commands
 from benedict import benedict
 
+import os
+from dotenv import load_dotenv
+
 intents = discord.Intents.default()
 intents.members = True
 
@@ -46,4 +49,6 @@ async def on_message(message):
 
 g = benedict.from_yaml('games.yaml')
 
-bot.run('TOKEN')
+if __name__ == '__main__':
+    load_dotenv()
+    bot.run(os.environ.get("DISCORD_TOKEN", ""))
