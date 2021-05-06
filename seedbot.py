@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
 # This example requires the 'members' privileged intents
 
+import config
+
 import discord
 from discord.ext import commands
 from benedict import benedict
+from database import Database
 
+db = Database(config.DATABASE_PATH, echo=config.VERBOSE)
 intents = discord.Intents.default()
 intents.members = True
 
@@ -46,4 +50,5 @@ async def on_message(message):
 
 g = benedict.from_yaml('games.yaml')
 
-bot.run('TOKEN')
+if __name__ == '__main__':
+    bot.run(config.DISCORD_TOKEN)
