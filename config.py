@@ -4,6 +4,7 @@ load_dotenv()
 
 DISCORD_TOKEN = os.environ['DISCORD_TOKEN']
 INSTANCE_PATH = os.environ['INSTANCE_PATH']
+VERBOSE = os.environ.get("VERBOSE", "False").lower() in ['true', 't', 'yes', 'y', '1', 'on']
 
 DATABASE_PATH = os.path.join(INSTANCE_PATH, 'db.sqlite')
 

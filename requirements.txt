@@ -1,3 +1,4 @@
 discord.py
 python-benedict
 python-dotenv
+sqlalchemy

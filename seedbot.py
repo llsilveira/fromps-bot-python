@@ -6,7 +6,9 @@ import config
 import discord
 from discord.ext import commands
 from benedict import benedict
+from database import Database
 
+db = Database(config.DATABASE_PATH, echo=config.VERBOSE)
 intents = discord.Intents.default()
 intents.members = True
 
