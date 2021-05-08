@@ -9,19 +9,17 @@ from database import Database
 from datetime import datetime
 
 from datatypes import Games
-from helpers import get_discord_name
-from helpers.converters import DatetimeConveter, TimeConverter
+from helpers import get_discord_name, feedback_reactions, DatetimeConveter, TimeConverter
 
 db = Database(config.DATABASE_PATH, echo=config.VERBOSE)
 
 intents = discord.Intents.default()
 intents.members = True
-bot = commands.Bot(command_prefix='!', intents=intents)
+bot = commands.Bot(command_prefix='?', intents=intents)
 
 
 async def privileged(ctx):
     return str(ctx.author.id) in config.ADMINS
-
 
 @bot.event
 async def on_ready():
@@ -55,27 +53,21 @@ async def create(ctx, game: Games, seed_url: str, seed_hash: str, submission_end
     print(game, seed_url, seed_hash, submission_end)
 
 @bot.command(name = 'seed', help = "Solicitar seed da semanal")
+@feedback_reactions()
 async def seed(ctx):
     message = ctx.message
-    await message.add_reaction("⌚")
 
     if message.channel.id != 840423878174048306:
-        await message.add_reaction("🚫")
-        await message.remove_reaction("⌚", ctx.bot.user)
         # TODO mudar canal hardcoded
         await message.reply("Este comando deve ser enviado no canal #%s." % (bot.get_channel(int(840423878174048306)).name))
         return
 
     weekly = db.get_weekly(Games.MMR)
     if weekly is None:
-        await message.add_reaction("🚫")
-        await message.remove_reaction("⌚", ctx.bot.user)
         await message.reply("A semanal de %s não está aberta." % (Games.MMR.value))
         return
 
     if datetime.now() >= weekly.submission_end:
-        await message.add_reaction("🚫")
-        await message.remove_reaction("⌚", ctx.bot.user)
         await message.reply("As submissões para a semanal de %s foram encerradas." % (Games.MMR.value))
         return
 
@@ -97,55 +89,40 @@ async def seed(ctx):
         """ % (weekly.seed_url, weekly.seed_hash, weekly.submission_end.strftime("%d/%m/%Y"), weekly.submission_end.strftime("%H:%M")),
         color=0xFF0000
     )
-
     await ctx.author.send(embed=embed)
-    await message.add_reaction("✅")
-    await message.remove_reaction("⌚", ctx.bot.user)
 
 @bot.command(name="time", help="**No privado** Enviar o tempo final da seed jogada")
+@feedback_reactions()
 async def time(ctx, time: TimeConverter("%H:%M:%S")):
     message = ctx.message
-    await message.add_reaction("⌚")
 
     if not isinstance(message.channel, discord.DMChannel):
-        await message.add_reaction("🚫")
-        await message.remove_reaction("⌚", ctx.bot.user)
         await message.reply("Por favor, envie este comando no privado.")
         await message.delete()
         return
 
     weekly = db.get_weekly(Games.MMR)
     if weekly is None:
-        await message.add_reaction("🚫")
-        await message.remove_reaction("⌚", ctx.bot.user)
         await message.reply("Não há uma semanal de %s em andamento." % (Games.MMR.value))
         return
 
     if datetime.now() >= weekly.submission_end:
-        await message.add_reaction("🚫")
-        await message.remove_reaction("⌚", ctx.bot.user)
         await message.reply("As submissões de tempo para a semanal de %s foram encerradas." % (Games.MMR.value))
         return
 
     author_id = ctx.author.id
     entry = db.get_player_entry(weekly, author_id)
     if entry is None:
-        await message.add_reaction("🚫")
-        await message.remove_reaction("⌚", ctx.bot.user)
         await message.reply("Você ainda não solicitou a seed da semanal de %s." % (Games.MMR.value))
         return
 
     if len(message.attachments) != 1:
-        await message.add_reaction("🚫")
-        await message.remove_reaction("⌚", ctx.bot.user)
         await message.reply("Você deve enviar o print mostrando a tela final do jogo e o seu timer juntamente com este comando.")
         return
 
     db.submit_time(weekly, author_id, time, message.attachments[0].url)
 
     await message.reply("Tempo recebido com sucesso!")
-    await message.add_reaction("✅")
-    await message.remove_reaction("⌚", ctx.bot.user)
 
 
 @time.error
@@ -160,43 +137,33 @@ async def time_error(ctx, error):
 
 
 @bot.command(name="vod", help="**No privado** Enviar o vod da seed jogada")
+@feedback_reactions()
 async def vod(ctx, vod_url: str):
     message = ctx.message
-    await message.add_reaction("⌚")
 
     if not isinstance(message.channel, discord.DMChannel):
-        await message.add_reaction("🚫")
-        await message.remove_reaction("⌚", ctx.bot.user)
         await message.reply("Por favor, envie este comando no privado.")
         await message.delete()
         return
 
     weekly = db.get_weekly(Games.MMR)
     if weekly is None:
-        await message.add_reaction("🚫")
-        await message.remove_reaction("⌚", ctx.bot.user)
         await message.reply("Não há uma semanal de %s em andamento." % (Games.MMR.value))
         return
 
     author_id = ctx.author.id
     entry = db.get_player_entry(weekly, author_id)
     if entry is None:
-        await message.add_reaction("🚫")
-        await message.remove_reaction("⌚", ctx.bot.user)
         await message.reply("Você ainda não solicitou a seed da semanal de %s." % (Games.MMR.value))
         return
 
     if entry.finish_time is None:
-        await message.add_reaction("🚫")
-        await message.remove_reaction("⌚", ctx.bot.user)
         await message.reply("Você deve enviar o seu tempo através do comando '!time' antes de enviar o seu VOD.")
         return
 
     db.submit_vod(weekly, author_id, vod_url)
 
     await message.reply("VOD recebido com sucesso!")
-    await message.add_reaction("✅")
-    await message.remove_reaction("⌚", ctx.bot.user)
 
 
 @vod.error
@@ -209,30 +176,27 @@ async def vod_error(ctx, error):
 
 
 @bot.command(name = "entries", checks=[privileged], hidden=True)
+@feedback_reactions()
 async def entries(ctx):
     message = ctx.message
-    await message.add_reaction("⌚")
 
     if not isinstance(message.channel, discord.DMChannel):
-        await message.add_reaction("🚫")
-        await message.remove_reaction("⌚", ctx.bot.user)
         await message.reply("Por favor, utilize este comando apenas no privado.")
         await message.delete()
-        return
+        return False
 
     weekly = db.get_weekly(Games.MMR)
     if weekly is None:
-        await message.add_reaction("🚫")
-        await message.remove_reaction("⌚", ctx.bot.user)
         await message.reply("Não há uma semanal de %s em andamento." % (Games.MMR.value))
-        return
+        return False
 
     reply = ""
     for e in weekly.entries:
         reply += "Player: %s\nTempo: %s\nPrint: <%s>\nVOD: <%s>\n\n" % (e.discord_name, e.finish_time, e.print_url, e.vod_url)
-    await ctx.message.reply(reply)
-    await message.add_reaction("✅")
-    await message.remove_reaction("⌚", ctx.bot.user)
+    if len(reply) > 0:
+        await ctx.message.reply(reply)
+    else:
+        await ctx.message.reply("Nenhuma entrada resgistrada.")
 
 
 @bot.event
