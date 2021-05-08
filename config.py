@@ -8,6 +8,13 @@ VERBOSE = os.environ.get("VERBOSE", "False").lower() in ['true', 't', 'yes', 'y'
 
 DATABASE_PATH = os.path.join(INSTANCE_PATH, 'db.sqlite')
 
+ADMINS = [
+    "491980801026555915", #Cesinha
+    "119135787383128068", #Grafitte
+    "237744469133361152", #Tso
+    "343878980358635520" #llsilveira
+]
+
 
 class ConfigError(Exception):
     pass

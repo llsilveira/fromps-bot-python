@@ -46,28 +46,29 @@ class Database:
     def close_current_weekly(self, game):
         self.update_weekly(game, submission_end=datetime.now())
 
-    def get_player_entry(self, weekly, player_id):
-        return self.Session.get(PlayerEntry, (weekly.id, player_id))
+    def get_player_entry(self, weekly, discord_id):
+        return self.Session.get(PlayerEntry, (weekly.id, discord_id))
 
-    def register(self, weekly, player_id):
+    def register(self, weekly, discord_id, discord_name):
         entry = PlayerEntry(
-            discord_id=player_id,
             weekly=weekly,
+            discord_id=discord_id,
+            discord_name=discord_name,
             registered_at=datetime.now()
         )
         self.Session.add(entry)
         self.Session.commit()
         return entry
 
-    def submit_time(self, weekly, player_id, finish_time, print_url):
-        entry = self.get_player_entry(weekly, player_id)
+    def submit_time(self, weekly, discord_id, finish_time, print_url):
+        entry = self.get_player_entry(weekly, discord_id)
         entry.finish_time = finish_time
         entry.print_url = print_url
         entry.time_submitted_at = datetime.now()
         self.Session.commit()
 
-    def submit_vod(self, weekly, player_id, vod_url):
-        entry = self.get_player_entry(weekly, player_id)
+    def submit_vod(self, weekly, discord_id, vod_url):
+        entry = self.get_player_entry(weekly, discord_id)
         entry.vod_url = vod_url
         entry.vod_submitted_at = datetime.now()
         self.Session.commit()
