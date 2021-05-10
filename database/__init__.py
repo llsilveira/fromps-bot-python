@@ -8,9 +8,29 @@ from database.model import PlayerEntry, Weekly, Base
 
 
 class Database:
-    def __init__(self, dbpath, echo=False, future=True):
-        self.engine = create_engine('sqlite+pysqlite:///' + dbpath, echo=echo, future=future)
-        self.Session = scoped_session(sessionmaker(self.engine, future=future))
+    def __init__(
+            self,
+            *,
+            dialect,
+            dbapi="",
+            user="",
+            password="",
+            host="",
+            port="",
+            dbpath,
+            engine_options={}
+    ):
+        url = Database.build_database_url(
+            dialect=dialect,
+            dbapi=dbapi,
+            user=user,
+            password=password,
+            host=host,
+            port=port,
+            dbpath=dbpath
+        )
+        self.engine = create_engine(url, **engine_options, future=True)
+        self.Session = scoped_session(sessionmaker(self.engine, future=True))
 
     def get_weekly(self, selector):
         if isinstance(selector, Games):
@@ -77,3 +97,17 @@ class Database:
         Base.metadata.drop_all(self.engine)
         Base.metadata.create_all(self.engine)
         self.Session.remove()
+
+    @staticmethod
+    def build_database_url(*, dialect, dbapi="", user="", password="", host="", port="", dbpath):
+        def add_if_not_none(value, *, prefix="", suffix=""):
+            if value is not None and len(value) > 0:
+                return prefix + value + suffix
+            return ""
+
+        url = dialect + add_if_not_none(dbapi, prefix="+") + "://"
+        auth = add_if_not_none(user) + add_if_not_none(password, prefix=":")
+        url += add_if_not_none(auth, suffix="@") + host + add_if_not_none(port, prefix=":") + "/"
+        url += dbpath
+
+        return url

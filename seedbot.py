@@ -11,42 +11,21 @@ from datetime import datetime
 from datatypes import Games
 from helpers import get_discord_name, feedback_reactions, DatetimeConveter, TimeConverter
 
-db = Database(config.DATABASE_PATH, echo=config.VERBOSE)
+cfg = config.load_conf()
+db = Database(**cfg['database'])
 
 intents = discord.Intents.default()
 intents.members = True
-bot = commands.Bot(command_prefix='?', intents=intents)
+bot = commands.Bot(command_prefix=cfg['discord']['command_prefix'], intents=intents)
 
 
 async def privileged(ctx):
-    return str(ctx.author.id) in config.ADMINS
+    return ctx.author.id in cfg['discord']['roles']['admin']
 
 @bot.event
 async def on_ready():
-    print('Logged in as')
-    print(bot.user.name)
-    print(bot.user.id)
+    print('Logged in as %s<%s>' % (bot.user.name, bot.user.id))
     print('------')
-
-@bot.command(name = 'alttpseed', help = 'Solicitar seed da semanal de A Link to the Past', enabled = False)
-async def alttpseed(ctx):
-    await ctx.message.author.send()
-
-@bot.command(name = 'ootseed', help = 'Solicitar seed da semanal de Ocarina of Time', enabled = False)
-async def ootseed(ctx):
-    await ctx.message.author.send()
-
-@bot.command(name = 'mmseed', help = 'Solicitar seed da semanal de Majora\'s Mask', enabled = False)
-async def mmseed(ctx):
-    await ctx.message.author.send()
-
-@bot.command(name = 'smz3seed', help = 'Solicitar seed da semanal de SMZ3', enabled = False)
-async def smz3seed(ctx):
-    await ctx.message.author.send()
-
-@bot.command(name = 'pkmncrystalseed', help = 'Solicitar seed da semanal de Pokémon Crystal', enabled = False)
-async def pkmncrystalseed(ctx):
-    await ctx.message.author.send()
 
 @bot.command(checks=[privileged], enabled = False)
 async def create(ctx, game: Games, seed_url: str, seed_hash: str, submission_end: DatetimeConveter("%d/%m/%Y-%H:%M:%S")):
@@ -57,9 +36,9 @@ async def create(ctx, game: Games, seed_url: str, seed_hash: str, submission_end
 async def seed(ctx):
     message = ctx.message
 
-    if message.channel.id != 840423878174048306:
+    if message.channel.id != cfg['discord']['channels']['signup']:
         # TODO mudar canal hardcoded
-        await message.reply("Este comando deve ser enviado no canal #%s." % (bot.get_channel(int(840423878174048306)).name))
+        await message.reply("Este comando deve ser enviado no canal #%s." % (bot.get_channel(cfg['discord']['channels']['signup']).name))
         return
 
     weekly = db.get_weekly(Games.MMR)
@@ -201,10 +180,7 @@ async def entries(ctx):
 
 @bot.event
 async def on_message(message):
-    #if isinstance(message.channel, discord.DMChannel):
-    #    channel = bot.get_channel(int(780745477842403338))
-    #    await channel.send(f"{message.author} sent:\n```{message.content}```\n{message.attachments[0].url}")
     await bot.process_commands(message)
 
 if __name__ == '__main__':
-    bot.run(config.DISCORD_TOKEN)
+    bot.run(cfg['discord']['token'])

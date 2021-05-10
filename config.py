@@ -1,33 +1,23 @@
 import os
-from dotenv import load_dotenv
-load_dotenv()
+import configparser
+import ast
+import dotenv
 
-DISCORD_TOKEN = os.environ['DISCORD_TOKEN']
-INSTANCE_PATH = os.environ['INSTANCE_PATH']
-VERBOSE = os.environ.get("VERBOSE", "False").lower() in ['true', 't', 'yes', 'y', '1', 'on']
-
-DATABASE_PATH = os.path.join(INSTANCE_PATH, 'db.sqlite')
-
-ADMINS = [
-    "491980801026555915", #Cesinha
-    "119135787383128068", #Grafitte
-    "237744469133361152", #Tso
-    "343878980358635520" #llsilveira
-]
+dotenv.load_dotenv()
+INSTANCE_PATH = os.environ.get("INSTANCE_PATH", os.getcwd())
+CONFIG_FILE = os.environ.get("CONFIG_FILE", os.path.join(INSTANCE_PATH, "config.ini"))
 
 
-class ConfigError(Exception):
-    pass
+class AppConfigParser(configparser.ConfigParser):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def get(self, section, option, raw=False, vars=None, fallback=None):
+        return ast.literal_eval(super().get(section, option, raw=raw, vars=vars, fallback=fallback))
 
 
-def check_config():
-    assert DISCORD_TOKEN is not None
-    assert INSTANCE_PATH is not None
-
-    if not os.path.exists(INSTANCE_PATH):
-        os.makedirs(INSTANCE_PATH)
-    if not os.path.isdir(INSTANCE_PATH) or not os.access(INSTANCE_PATH, os.W_OK):
-        raise ConfigError("'INSTANCE_PATH' is not a writable directory")
-
-
-check_config()
+def load_conf(config_file=CONFIG_FILE):
+    parser = AppConfigParser(interpolation=configparser.ExtendedInterpolation())
+    parser.read_dict({'env': {'instance_path': '"' + INSTANCE_PATH + '"'}})
+    parser.read(config_file)
+    return parser
