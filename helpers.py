@@ -6,14 +6,19 @@ import functools
 def get_discord_name(discord_user):
     return "%s#%s" % (discord_user.name, discord_user.discriminator)
 
+
 def feedback_reactions(*, busy_emoji="⌚", success_emoji="✅", fail_emoji="🚫"):
     def decorator(f):
         @functools.wraps(f)
-        async def wrapper(context, *args, **kwargs):
+        async def wrapper(*args, **kwargs):
+            context = args[0]
+            if not isinstance(context, commands.Context):
+                context = args[1]
+
             message = context.message
             await message.add_reaction(busy_emoji)
             try:
-                result = await f(context, *args, **kwargs)
+                result = await f(*args, **kwargs)
                 if result is None or result:
                     await message.add_reaction(success_emoji)
                 else:
