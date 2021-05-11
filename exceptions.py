@@ -1,0 +1,2 @@
+class SeedBotException(Exception):
+    pass

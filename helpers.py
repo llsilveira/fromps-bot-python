@@ -1,5 +1,6 @@
 from discord.ext import commands
 from datetime import datetime
+from datatypes import Games
 import functools
 
 
@@ -7,32 +8,7 @@ def get_discord_name(discord_user):
     return "%s#%s" % (discord_user.name, discord_user.discriminator)
 
 
-def feedback_reactions(*, busy_emoji="⌚", success_emoji="✅", fail_emoji="🚫"):
-    def decorator(f):
-        @functools.wraps(f)
-        async def wrapper(*args, **kwargs):
-            context = args[0]
-            if not isinstance(context, commands.Context):
-                context = args[1]
-
-            message = context.message
-            await message.add_reaction(busy_emoji)
-            try:
-                result = await f(*args, **kwargs)
-                if result is None or result:
-                    await message.add_reaction(success_emoji)
-                else:
-                    await message.add_reaction(fail_emoji)
-            except Exception as e:
-                await message.add_reaction(fail_emoji)
-                raise e
-            finally:
-                await message.remove_reaction(busy_emoji, context.bot.user)
-        return wrapper
-    return decorator
-
-
-class DatetimeConveter(commands.Converter):
+class DatetimeConverter(commands.Converter):
     def __init__(self, format):
         self.format = format
 
@@ -46,3 +22,18 @@ class TimeConverter(commands.Converter):
 
     async def convert(self, ctx, argument):
         return datetime.strptime(argument, self.format).time()
+
+
+class GameConverter(commands.Converter):
+    @staticmethod
+    def get_reverse_map():
+        if not hasattr(GameConverter, 'reverse_map'):
+            reverse_map = {}
+            for game in Games:
+                for key in game.keys:
+                    reverse_map[key] = game
+            GameConverter.reverse_map = reverse_map
+        return GameConverter.reverse_map
+
+    async def convert(self, ctx, argument):
+        return GameConverter.get_reverse_map()[argument]
