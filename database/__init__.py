@@ -1,12 +1,15 @@
 from sqlalchemy import create_engine, select
-from sqlalchemy.orm import sessionmaker, scoped_session
+from sqlalchemy.orm import sessionmaker
 
 from datetime import datetime
 
 from datatypes import EntryStatus, WeeklyStatus
 from database.model import PlayerEntry, Weekly, Base
 
-#TODO: properly treat errors with rollback
+
+class ConsistencyError(Exception):
+    pass
+
 
 class Database:
     def __init__(
@@ -32,26 +35,27 @@ class Database:
         )
         options = engine_options or {}
         self.engine = create_engine(url, **options, future=True)
-        self.Session = scoped_session(sessionmaker(self.engine, future=True))
+        self.Session = sessionmaker(self.engine, future=True)
 
-    def get_weekly(self, id):
-        return self.Session.get(Weekly, id)
+    def get_weekly(self, session, weekly_id):
+        return session.get(Weekly, weekly_id)
 
-    def get_open_weekly(self, game):
-        return self.Session.execute(
-            select(Weekly)
-                .where(Weekly.game == game, Weekly.status == WeeklyStatus.OPEN)
-                .order_by(Weekly.created_at.desc())
+    def get_open_weekly(self, session, game):
+        return session.execute(
+            select(Weekly).where(Weekly.game == game, Weekly.status == WeeklyStatus.OPEN).order_by(
+                Weekly.created_at.desc()
+            )
         ).scalars().first()
 
-    def create_weekly(self, game, seed_url, seed_hash, submission_end, *, force_close=False):
-        open_weekly = self.get_open_weekly(game)
+    def create_weekly(self, session, game, seed_url, seed_hash, submission_end, *, force_close=False):
+        open_weekly = self.get_open_weekly(session, game)
         if open_weekly is not None:
             if force_close:
-                self.close_weekly(open_weekly)
+                self.close_weekly(session, open_weekly)
             else:
-                #TODO: definir exceção
-                raise
+                raise ConsistencyError(
+                    "Attempt to create a weekly while another one for the same game is still open"
+                )
 
         weekly = Weekly(
             game=game,
@@ -61,37 +65,39 @@ class Database:
             created_at=datetime.now(),
             submission_end=submission_end
         )
-        self.Session.add(weekly)
-        self.Session.commit()
+        session.add(weekly)
+        session.commit()
         return weekly
 
-    def close_weekly(self, weekly):
+    def close_weekly(self, session, weekly):
         for entry in weekly.entries:
             if entry.status != EntryStatus.DONE and entry.status != EntryStatus.DNF:
                 entry.status = EntryStatus.DNF
         weekly.status = WeeklyStatus.CLOSED
-        self.Session.commit()
+        session.commit()
 
-    def get_player_entry(self, weekly, discord_id):
-        return self.Session.get(PlayerEntry, (weekly.id, discord_id))
+    def get_player_entry(self, session, weekly, discord_id):
+        return session.get(PlayerEntry, (weekly.id, discord_id))
 
-    def get_registered_entry(self, discord_id):
-        registered = self.Session.execute(
-            select(PlayerEntry).where(PlayerEntry.discord_id == discord_id, PlayerEntry.status == EntryStatus.REGISTERED)
+    def get_registered_entry(self, session, discord_id):
+        registered = session.execute(
+            select(PlayerEntry).where(PlayerEntry.discord_id == discord_id,
+                                      PlayerEntry.status == EntryStatus.REGISTERED)
         ).scalars().all()
 
         if len(registered) == 0:
             return None
 
         if len(registered) > 1:
-            #TODO: log as a consistency error
+            # TODO: log as a consistency error
             pass
         return registered[0]
 
-    def register_player(self, weekly, discord_id, discord_name):
-        if self.get_registered_entry(discord_id) is not None:
-            #TODO: error and log
-            return None
+    def register_player(self, session, weekly, discord_id, discord_name):
+        if self.get_registered_entry(session, discord_id) is not None:
+            raise ConsistencyError(
+                "Attempt to register a player that is already registered to a weekly."
+            )
 
         entry = PlayerEntry(
             weekly=weekly,
@@ -100,43 +106,45 @@ class Database:
             status=EntryStatus.REGISTERED,
             registered_at=datetime.now()
         )
-        self.Session.add(entry)
-        self.Session.commit()
+        session.add(entry)
+        session.commit()
         return entry
 
-    def forfeit_player(self, weekly, discord_id):
-        entry = self.get_player_entry(weekly, discord_id)
+    def forfeit_player(self, session, weekly, discord_id):
+        entry = self.get_player_entry(session, weekly, discord_id)
         if entry.status != EntryStatus.REGISTERED:
-            #TODO: definir exceção
-            raise
+            raise ConsistencyError(
+                "Attempt to forfeit a player that is not registered to a weekly."
+            )
         entry.status = EntryStatus.DNF
-        self.Session.commit()
+        session.commit()
 
-    def submit_time(self, weekly, discord_id, finish_time, print_url):
-        entry = self.get_player_entry(weekly, discord_id)
+    def submit_time(self, session, weekly, discord_id, finish_time, print_url):
+        entry = self.get_player_entry(session, weekly, discord_id)
         if entry.status != EntryStatus.REGISTERED:
-            #TODO: definir exceção
-            raise
+            raise ConsistencyError(
+                "Attempt to register a time for a player that is not registered to a weekly."
+            )
         entry.finish_time = finish_time
         entry.print_url = print_url
         entry.time_submitted_at = datetime.now()
         entry.status = EntryStatus.TIME_SUBMITTED
-        self.Session.commit()
+        session.commit()
 
-    def submit_vod(self, weekly, discord_id, vod_url):
-        entry = self.get_player_entry(weekly, discord_id)
+    def submit_vod(self, session, weekly, discord_id, vod_url):
+        entry = self.get_player_entry(session, weekly, discord_id)
         if entry.status != EntryStatus.TIME_SUBMITTED:
-            #TODO: definir exceção
-            raise
+            raise ConsistencyError(
+                "Attempt to register a VOD for a player that did not have a time submitted for their weekly."
+            )
         entry.status = EntryStatus.DONE
         entry.vod_url = vod_url
         entry.vod_submitted_at = datetime.now()
-        self.Session.commit()
+        session.commit()
 
     def _generate_schema(self):
         Base.metadata.drop_all(self.engine)
         Base.metadata.create_all(self.engine)
-        self.Session.remove()
 
     @staticmethod
     def build_database_url(*, dialect, dbapi="", user="", password="", host="", port="", dbpath):
