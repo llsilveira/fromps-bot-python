@@ -1,6 +1,19 @@
 import enum
 
 
+class WeeklyStatus(enum.Enum):
+    OPEN = enum.auto()
+    CLOSED = enum.auto()
+
+
+class EntryStatus(enum.Enum):
+    REGISTERED = enum.auto()
+    TIME_SUBMITTED = enum.auto()
+    DONE = enum.auto()
+    DNF = enum.auto()
+
+
+
 class Games(enum.Enum):
     ALTTPR = (
         "A Link to the Past Randomizer",

@@ -23,27 +23,27 @@ async def on_ready():
 
 
 @bot.event
-async def on_message(message):
-    await bot.process_commands(message)
-
-
-@bot.event
 async def on_command_error(ctx, error):
     await ctx.message.remove_reaction('⌚', ctx.bot.user)
 
-    if isinstance(error, discord.ext.commands.errors.CommandInvokeError) \
-            and isinstance(error.original, SeedBotException):
-        await ctx.reply(error.original)
-    elif isinstance(error, commands.errors.MissingRequiredArgument):
-        await ctx.reply("O argumento '%s' é obrigatório." % error.param.name)
-    elif isinstance(error, commands.errors.ConversionError):
-        #TODO especificar o erro por tipo de parâmetro
+    if isinstance(error, commands.errors.CommandNotFound):
         pass
+    elif isinstance(error, commands.errors.CommandInvokeError) \
+            and isinstance(error.original, SeedBotException):
+        error = error.original
+        if error.send_reply:
+            if error.reply_on_private:
+                await ctx.author.send(error)
+            else:
+                await ctx.reply(error)
+        if error.delete_origin:
+            await ctx.message.delete()
     elif isinstance(error, commands.errors.CheckFailure):
-        #TODO testar se foi uso de comando privilegiado e logar
         pass
     else:
-        await ctx.reply("Ocorreu um erro inesperado.")
+        print(type(error))
+        print(error)
+        raise(error)
         #TODO logar
 
 
