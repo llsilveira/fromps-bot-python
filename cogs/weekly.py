@@ -2,12 +2,12 @@ import discord
 from discord.ext import commands
 from datetime import datetime
 
-from datatypes import EntryStatus, Games
+from datatypes import EntryStatus
 from helpers import get_discord_name, GameConverter, MonitorChecker
 from exceptions import SeedBotException
 
 
-class Weekly(commands.Cog):
+class Weekly(commands.Cog, name="Semanais"):
     def __init__(self, bot, config, database):
         self.bot = bot
         self.config = config

@@ -14,11 +14,24 @@ db = Database(**cfg['database'])
 
 intents = discord.Intents.default()
 intents.members = True
-bot = commands.Bot(command_prefix=cfg['bot']['command_prefix'], intents=intents)
+hlp = commands.DefaultHelpCommand(
+    command_attrs={
+        "name": "ajuda",
+        "help": "Mostrar esta mensagem"
+    },
+    no_category="Sem categoria",
+    dm_help=True
+)
 
-filter_signup = re.compile(r'^' + re.escape(cfg['bot']['command_prefix']) + r"(semanais|seed).*$")
+bot = commands.Bot(
+    command_prefix=cfg['bot']['command_prefix'],
+    intents=intents,
+    help_command=hlp
+)
+
+filter_signup = re.compile(r'^' + re.escape(cfg['bot']['command_prefix']) + r"(ajuda|semanais|seed).*$")
 filter_dm = re.compile(
-    r'^' + re.escape(cfg['bot']['command_prefix']) + r"(semanais|time|forfeit|vod|entries|weeklycreate|weeklyclose).*$"
+    r'^' + re.escape(cfg['bot']['command_prefix']) + r"(ajuda|semanais|time|forfeit|vod|entries|weeklycreate|weeklyclose).*$"
 )
 signup_channel = cfg['bot']['signup_channel']
 testing = cfg['general'].get('testing', False)
