@@ -19,16 +19,8 @@ class Weekly(commands.Cog):
     )
     async def seed(self, ctx, *args):
         with self.db.Session() as session:
-            message = ctx.message
-
-            if message.channel.id != self.config['channels']['signup']:
-                raise SeedBotException(
-                    "Este comando deve ser enviado no canal #%s." %
-                    self.bot.get_channel(self.config['channels']['signup']).name
-                )
-
             if len(args) != 1:
-                raise SeedBotException("O formato correto deste comando é: %s%s <jogo>" % (ctx.prefix, ctx.invoked_with) )
+                raise SeedBotException("O formato correto deste comando é: %s%s <jogo>" % (ctx.prefix, ctx.invoked_with))
 
             game = GameConverter.convert(args[0])
             if game is None:
@@ -79,19 +71,12 @@ class Weekly(commands.Cog):
     )
     async def time(self, ctx, *args):
         with self.db.Session() as session:
-            if not isinstance(ctx.message.channel, discord.DMChannel):
-                raise SeedBotException(
-                    "O comando '%s' deve ser utilizado apenas neste canal privado." % ctx.invoked_with,
-                    delete_origin=True,
-                    reply_on_private=True
-                )
-
             if len(args) != 1:
                 raise SeedBotException("O formato correto deste comando é: %s%s H:MM:SS" % (ctx.prefix, ctx.invoked_with))
 
             try:
                 time = datetime.strptime(args[0], "%H:%M:%S").time()
-            except:
+            except Exception:
                 raise SeedBotException("O tempo deve estar no formato 'H:MM:SS'")
 
             author_id = ctx.author.id
@@ -125,13 +110,6 @@ class Weekly(commands.Cog):
     )
     async def forfeit(self, ctx, *args):
         with self.db.Session() as session:
-            if not isinstance(ctx.message.channel, discord.DMChannel):
-                raise SeedBotException(
-                    "O comando '%s' deve ser utilizado apenas neste canal privado." % ctx.invoked_with,
-                    delete_origin=True,
-                    reply_on_private=True
-                )
-
             author_id = ctx.author.id
             entry = self.db.get_registered_entry(session, author_id)
             if entry is None:
@@ -139,7 +117,7 @@ class Weekly(commands.Cog):
 
             if len(args) < 1 or len(args) > 1 or str.lower(args[0]) != "ok":
                 raise SeedBotException(
-                    "Confirme sua desistência da semanal de %s ação enviando o comando '%sforfeit ok' aqui." %  (entry.weekly.game, ctx.prefix)
+                    "Confirme sua desistência da semanal de %s ação enviando o comando '%sforfeit ok' aqui." % (entry.weekly.game, ctx.prefix)
                 )
 
             self.db.forfeit_player(session, entry.weekly, author_id)
@@ -151,15 +129,8 @@ class Weekly(commands.Cog):
     )
     async def vod(self, ctx, *args):
         with self.db.Session() as session:
-            if not isinstance(ctx.message.channel, discord.DMChannel):
-                raise SeedBotException(
-                    "O comando '%s' deve ser utilizado apenas neste canal privado." % ctx.invoked_with,
-                    delete_origin=True,
-                    reply_on_private=True
-                )
-
             if len(args) != 2:
-                raise SeedBotException("O formato correto deste comando é: %s%s <jogo> <vod_url>" % (ctx.prefix, ctx.invoked_with) )
+                raise SeedBotException("O formato correto deste comando é: %s%s <jogo> <vod_url>" % (ctx.prefix, ctx.invoked_with))
 
             game = GameConverter.convert(args[0])
             if game is None:
@@ -189,13 +160,6 @@ class Weekly(commands.Cog):
     )
     async def entries(self, ctx, *args):
         with self.db.Session() as session:
-            if not isinstance(ctx.message.channel, discord.DMChannel):
-                raise SeedBotException(
-                    "O comando '%s' deve ser utilizado apenas neste canal privado." % ctx.invoked_with,
-                    send_reply=False,
-                    delete_origin=True
-                )
-
             monitors = {Games[key]: monitor for (key, monitor) in self.config['monitors'].items()}
             author_name = get_discord_name(ctx.author)
 
@@ -206,10 +170,7 @@ class Weekly(commands.Cog):
                     break
 
             if not is_monitor:
-                raise SeedBotException(
-                    "Este comando deve ser executado apenas por monitores.",
-                    send_reply=False
-                )
+                raise SeedBotException("Este comando deve ser executado apenas por monitores.")
 
             if len(args) != 1:
                 raise SeedBotException("O formato correto deste comando é: %s%s <jogo>" % (ctx.prefix, ctx.invoked_with))
@@ -237,9 +198,3 @@ class Weekly(commands.Cog):
                 await ctx.message.reply(reply)
             else:
                 await ctx.message.reply("Nenhuma entrada resgistrada.")
-
-    @commands.command(checks=[], enabled=False)
-    async def create(self, ctx, game: GameConverter, seed_url: str, seed_hash: str,
-                     submission_end):
-        with self.db.Session() as session:
-            print(game, seed_url, seed_hash, submission_end)
