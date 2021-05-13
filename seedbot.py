@@ -16,9 +16,9 @@ intents = discord.Intents.default()
 intents.members = True
 bot = commands.Bot(command_prefix=cfg['bot']['command_prefix'], intents=intents)
 
-filter_signup = re.compile(r'^' + re.escape(cfg['bot']['command_prefix']) + r"(seed).*$")
+filter_signup = re.compile(r'^' + re.escape(cfg['bot']['command_prefix']) + r"(semanais|seed).*$")
 filter_dm = re.compile(
-    r'^' + re.escape(cfg['bot']['command_prefix']) + r"(time|forfeit|vod|entries|weeklycreate|weeklyclose).*$"
+    r'^' + re.escape(cfg['bot']['command_prefix']) + r"(semanais|time|forfeit|vod|entries|weeklycreate|weeklyclose).*$"
 )
 signup_channel = cfg['bot']['signup_channel']
 testing = cfg['general'].get('testing', False)

@@ -47,6 +47,11 @@ class Database:
             )
         ).scalars().first()
 
+    def list_open_weeklies(self, session):
+        return session.execute(
+            select(Weekly).where(Weekly.status == WeeklyStatus.OPEN).order_by(Weekly.submission_end)
+        ).scalars().all()
+
     def create_weekly(self, session, game, seed_url, seed_hash, submission_end, *, force_close=False):
         open_weekly = self.get_open_weekly(session, game)
         if open_weekly is not None:
