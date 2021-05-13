@@ -71,7 +71,7 @@ class Database:
 
     def close_weekly(self, session, weekly):
         for entry in weekly.entries:
-            if entry.status != EntryStatus.DONE and entry.status != EntryStatus.DNF:
+            if entry.status == EntryStatus.REGISTERED:
                 entry.status = EntryStatus.DNF
         weekly.status = WeeklyStatus.CLOSED
         session.commit()

@@ -2,15 +2,9 @@ import discord
 from discord.ext import commands
 from datetime import datetime
 
-from datatypes import EntryStatus
+from datatypes import EntryStatus, Games
 from helpers import get_discord_name, GameConverter
 from exceptions import SeedBotException
-
-
-async def privileged(ctx):
-    self = ctx.cog
-    roles = self.config['roles']
-    return ctx.author.id in roles['admin']
 
 
 class Weekly(commands.Cog):
@@ -191,7 +185,6 @@ class Weekly(commands.Cog):
 
     @commands.command(
         name="entries",
-        checks=[privileged],
         hidden=True
     )
     async def entries(self, ctx, *args):
@@ -199,8 +192,23 @@ class Weekly(commands.Cog):
             if not isinstance(ctx.message.channel, discord.DMChannel):
                 raise SeedBotException(
                     "O comando '%s' deve ser utilizado apenas neste canal privado." % ctx.invoked_with,
-                    delete_origin=True,
-                    reply_on_private=True
+                    send_reply=False,
+                    delete_origin=True
+                )
+
+            monitors = {Games[key]: monitor for (key, monitor) in self.config['monitors'].items()}
+            author_name = get_discord_name(ctx.author)
+
+            is_monitor = False
+            for monitor_list in monitors.values():
+                if author_name in monitor_list:
+                    is_monitor = True
+                    break
+
+            if not is_monitor:
+                raise SeedBotException(
+                    "Este comando deve ser executado apenas por monitores.",
+                    send_reply=False
                 )
 
             if len(args) != 1:
@@ -210,21 +218,27 @@ class Weekly(commands.Cog):
             if game is None:
                 raise SeedBotException("Jogo desconhecido.")
 
+            if game not in monitors.keys() or author_name not in monitors[game]:
+                raise SeedBotException("Você não é monitor de %s." % game)
+
             weekly = self.db.get_open_weekly(session, game)
             if weekly is None:
                 raise SeedBotException("Não há uma semanal de %s em andamento." % game)
 
             reply = ""
             for e in weekly.entries:
-                reply += "Player: %s\nTempo: %s\nPrint: <%s>\nVOD: <%s>\n\n" % (
-                    e.discord_name, e.finish_time, e.print_url, e.vod_url
-                )
+                reply += "Player: %s\nStatus: %s\n" % (e.discord_name, e.status.name)
+                if e.status in [EntryStatus.TIME_SUBMITTED, EntryStatus.DONE]:
+                    reply += "Tempo: %s\nPrint: <%s>\n" % (e.finish_time, e.print_url)
+                if e.status == EntryStatus.DONE:
+                    reply += "VOD: <%s>\n" % e.vod_url
+                reply += "\n"
             if len(reply) > 0:
                 await ctx.message.reply(reply)
             else:
                 await ctx.message.reply("Nenhuma entrada resgistrada.")
 
-    @commands.command(checks=[privileged], enabled=False)
+    @commands.command(checks=[], enabled=False)
     async def create(self, ctx, game: GameConverter, seed_url: str, seed_hash: str,
                      submission_end):
         with self.db.Session() as session:

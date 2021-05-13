@@ -2,15 +2,15 @@ import enum
 
 
 class WeeklyStatus(enum.Enum):
-    OPEN = enum.auto()
-    CLOSED = enum.auto()
+    OPEN = 'OPEN'
+    CLOSED = 'CLOSED'
 
 
 class EntryStatus(enum.Enum):
-    REGISTERED = enum.auto()
-    TIME_SUBMITTED = enum.auto()
-    DONE = enum.auto()
-    DNF = enum.auto()
+    REGISTERED = 'REGISTERED'
+    TIME_SUBMITTED = 'TIME_SUBMITTED'
+    DONE = 'DONE'
+    DNF = 'DNF'
 
 
 
@@ -19,7 +19,7 @@ class Games(enum.Enum):
         "A Link to the Past Randomizer",
         ["alttp", "alttpr"],
     )
-    OOT = (
+    OOTR = (
         "Ocarina of Time Randomizer",
         ["oot", "ootr", "ocarina"],
     )
@@ -31,9 +31,9 @@ class Games(enum.Enum):
         "SMZ3 Combo Randomizer",
         ["smz3", "alttpsm", "s3z3", "combo"],
     )
-    PKMN_CRYSTAL_FULL = (
+    PKMN_CRYSTAL = (
         "Pokemon Crystal Full Item Randomizer",
-        ["pkmnfull"],
+        ["pkmn", "pokemon"],
     )
 
     def __init__(self, str, keys):
