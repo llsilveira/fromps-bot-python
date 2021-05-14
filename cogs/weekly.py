@@ -41,7 +41,7 @@ class Weekly(commands.Cog, name="Semanais"):
 
             embed.add_field(name="Código", value="\n".join(codes))
             embed.add_field(name="Jogo", value="\n".join(games))
-            embed.add_field(name="Submeter até", value="\n".join(times))
+            embed.add_field(name="Enviar até", value="\n".join(times))
 
             #reply = "Semanais abertas\nCodigo - Jogo\n"
             #for w in weeklies:
@@ -60,7 +60,7 @@ class Weekly(commands.Cog, name="Semanais"):
     async def seed(self, ctx, *args):
         with self.db.Session() as session:
             if len(args) != 1:
-                raise SeedBotException("O formato correto deste comando é: %s%s <jogo>" % (ctx.prefix, ctx.invoked_with))
+                raise SeedBotException("O formato correto deste comando é: %s%s <codigo_do_jogo>" % (ctx.prefix, ctx.invoked_with))
 
             game = GameConverter.convert(args[0])
             if game is None:
@@ -107,7 +107,7 @@ class Weekly(commands.Cog, name="Semanais"):
 
     @commands.command(
         name="time",
-        help="Enviar o tempo final da seed jogada"
+        help="*Apenas no privado* Enviar o tempo final da seed jogada"
     )
     async def time(self, ctx, *args):
         with self.db.Session() as session:
@@ -146,7 +146,7 @@ class Weekly(commands.Cog, name="Semanais"):
 
     @commands.command(
         name="forfeit",
-        help="Desistir da participação na semanal atual"
+        help="*Apenas no privado* Desistir da participação na semanal atual"
     )
     async def forfeit(self, ctx, *args):
         with self.db.Session() as session:
@@ -165,12 +165,12 @@ class Weekly(commands.Cog, name="Semanais"):
 
     @commands.command(
         name="vod",
-        help="Enviar o vod da seed jogada"
+        help="*Apenas no privado* Enviar o vod da seed jogada"
     )
     async def vod(self, ctx, *args):
         with self.db.Session() as session:
             if len(args) != 2:
-                raise SeedBotException("O formato correto deste comando é: %s%s <jogo> <vod_url>" % (ctx.prefix, ctx.invoked_with))
+                raise SeedBotException("O formato correto deste comando é: %s%s <codigo_do_jogo> <vod_url>" % (ctx.prefix, ctx.invoked_with))
 
             game = GameConverter.convert(args[0])
             if game is None:
@@ -204,7 +204,7 @@ class Weekly(commands.Cog, name="Semanais"):
                 raise SeedBotException("Este comando deve ser executado apenas por monitores.")
 
             if len(args) != 1:
-                raise SeedBotException("O formato correto deste comando é: %s%s <jogo>" % (ctx.prefix, ctx.invoked_with))
+                raise SeedBotException("O formato correto deste comando é: %s%s <codigo_do_jogo>" % (ctx.prefix, ctx.invoked_with))
 
             game = GameConverter.convert(args[0])
             if game is None:
@@ -241,7 +241,7 @@ class Weekly(commands.Cog, name="Semanais"):
                 raise SeedBotException("Este comando deve ser executado apenas por monitores.")
 
             if len(args) != 4:
-                raise SeedBotException("O formato correto deste comando é: %s%s <jogo> <seed> <hash> <dd/mm/aaaa-HH:MM>" % (ctx.prefix, ctx.invoked_with))
+                raise SeedBotException("O formato correto deste comando é: %s%s <codigo_do_jogo> <seed> <hash> <dd/mm/aaaa-HH:MM>" % (ctx.prefix, ctx.invoked_with))
 
             game = GameConverter.convert(args[0])
             if game is None:
@@ -273,7 +273,7 @@ class Weekly(commands.Cog, name="Semanais"):
                 raise SeedBotException("Este comando deve ser executado apenas por monitores.")
 
             if len(args) != 1:
-                raise SeedBotException("O formato correto deste comando é: %s%s <jogo>" % (ctx.prefix, ctx.invoked_with))
+                raise SeedBotException("O formato correto deste comando é: %s%s <codigo_do_jogo>" % (ctx.prefix, ctx.invoked_with))
 
             game = GameConverter.convert(args[0])
             if game is None:

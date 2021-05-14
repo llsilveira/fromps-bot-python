@@ -33,7 +33,7 @@ class Games(enum.Enum):
     )
     PKMN_CRYSTAL = (
         "Pokemon Crystal Full Item Randomizer",
-        ["pkmn", "pokemon"],
+        ["pkmn", "pokemon", "pkm", "poke", "pokémon"],
     )
 
     def __init__(self, str, keys):
