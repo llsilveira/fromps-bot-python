@@ -6,6 +6,9 @@ from datetime import datetime
 from datatypes import EntryStatus, WeeklyStatus
 from database.model import PlayerEntry, Weekly, Base
 
+import logging
+logger = logging.getLogger(__name__)
+
 
 class ConsistencyError(Exception):
     pass
@@ -72,6 +75,7 @@ class Database:
         )
         session.add(weekly)
         session.commit()
+        logger.debug("A weekly was created: %s", weekly)
         return weekly
 
     def close_weekly(self, session, weekly):
@@ -80,6 +84,7 @@ class Database:
                 entry.status = EntryStatus.DNF
         weekly.status = WeeklyStatus.CLOSED
         session.commit()
+        logger.debug("A weekly was closed: %s", weekly)
 
     def get_player_entry(self, session, weekly, discord_id):
         return session.get(PlayerEntry, (weekly.id, discord_id))
@@ -94,8 +99,10 @@ class Database:
             return None
 
         if len(registered) > 1:
-            # TODO: log as a consistency error
-            pass
+            logging.error(
+                "An inconsistency was found while quering the database: user %d has more than one 'REGISTERED' entry.",
+                discord_id
+            )
         return registered[0]
 
     def register_player(self, session, weekly, discord_id, discord_name):
@@ -113,6 +120,7 @@ class Database:
         )
         session.add(entry)
         session.commit()
+        logger.debug("A new entry was created: %s", entry)
         return entry
 
     def forfeit_player(self, session, weekly, discord_id):
@@ -123,6 +131,7 @@ class Database:
             )
         entry.status = EntryStatus.DNF
         session.commit()
+        logger.debug("Entry changed: %s", entry)
 
     def submit_time(self, session, weekly, discord_id, finish_time, print_url):
         entry = self.get_player_entry(session, weekly, discord_id)
@@ -135,6 +144,7 @@ class Database:
         entry.time_submitted_at = datetime.now()
         entry.status = EntryStatus.TIME_SUBMITTED
         session.commit()
+        logger.debug("Entry changed: %s", entry)
 
     def submit_vod(self, session, weekly, discord_id, vod_url):
         entry = self.get_player_entry(session, weekly, discord_id)
@@ -146,6 +156,7 @@ class Database:
         entry.vod_url = vod_url
         entry.vod_submitted_at = datetime.now()
         session.commit()
+        logger.debug("Entry changed: %s", entry)
 
     def _generate_schema(self):
         Base.metadata.drop_all(self.engine)

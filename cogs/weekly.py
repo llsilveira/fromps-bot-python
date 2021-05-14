@@ -6,6 +6,9 @@ from datatypes import EntryStatus
 from helpers import get_discord_name, GameConverter, MonitorChecker
 from exceptions import SeedBotException
 
+import logging
+logger = logging.getLogger(__name__)
+
 
 class Weekly(commands.Cog, name="Semanais"):
     def __init__(self, bot, config, database):
@@ -104,6 +107,7 @@ class Weekly(commands.Cog, name="Semanais"):
                 color=0xFF0000
             )
             await ctx.author.send(embed=embed)
+            logger.info("The seed for %s was sent to %s", game, get_discord_name(author))
 
     @commands.command(
         name="time",
@@ -143,6 +147,8 @@ class Weekly(commands.Cog, name="Semanais"):
                     entry.weekly.submission_end.strftime("%H:%M")
                 )
             )
+            logger.info(
+                "The time and print for %s was received from %s.", entry.weekly.game, get_discord_name(ctx.author))
 
     @commands.command(
         name="forfeit",
@@ -162,6 +168,7 @@ class Weekly(commands.Cog, name="Semanais"):
 
             self.db.forfeit_player(session, entry.weekly, author_id)
             await ctx.message.reply("Você não está mais participando da semanal de %s." % entry.weekly.game)
+            logger.info("%s has forfeited from %s.", get_discord_name(ctx.author), entry.weekly.game)
 
     @commands.command(
         name="vod",
@@ -193,6 +200,7 @@ class Weekly(commands.Cog, name="Semanais"):
 
             self.db.submit_vod(session, weekly, author_id, vod_url)
             await ctx.message.reply("VOD recebido com sucesso! Agradecemos a sua participação!")
+            logger.info("The VOD for %s was received from %s.", entry.weekly.game, get_discord_name(ctx.author))
 
     @commands.command(
         name="entries",
@@ -261,6 +269,7 @@ class Weekly(commands.Cog, name="Semanais"):
 
             self.db.create_weekly(session, game, args[1], args[2], submission_end)
             await ctx.message.reply("Semanal de %s criada com sucesso!" % game)
+            logger.info("A new weekly for %s was created.", game)
 
 
     @commands.command(
@@ -288,3 +297,4 @@ class Weekly(commands.Cog, name="Semanais"):
 
             self.db.close_weekly(session, weekly)
             await ctx.message.reply("Semanal de %s fechada com sucesso!" % game)
+            logger.info("The weekly for %s was closed.", game)

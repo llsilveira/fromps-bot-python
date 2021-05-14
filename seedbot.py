@@ -8,6 +8,9 @@ from exceptions import SeedBotException
 from database import Database
 from cogs.weekly import Weekly
 import re
+import logging
+
+logger = logging.getLogger(__name__)
 
 cfg = config.load_conf()
 db = Database(**cfg['database'])
@@ -84,6 +87,7 @@ async def on_message(message):
 async def on_ready():
     print('Logged in as %s<%s>' % (bot.user.name, bot.user.id))
     print('------')
+    logger.info("BOT IS READY!")
 
 
 @bot.event
@@ -95,10 +99,7 @@ async def on_command_error(ctx, error):
     elif isinstance(error, commands.errors.CheckFailure):
         pass
     else:
-        print(type(error))
-        print(error)
-        raise(error)
-        #TODO logar
+        logger.exception(error)
 
 
 @bot.event
