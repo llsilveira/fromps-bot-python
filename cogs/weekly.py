@@ -6,6 +6,8 @@ from datatypes import EntryStatus
 from helpers import get_discord_name, GameConverter, MonitorChecker
 from exceptions import SeedBotException
 
+import embeds
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -45,13 +47,6 @@ class Weekly(commands.Cog, name="Semanais"):
             embed.add_field(name="Código", value="\n".join(codes))
             embed.add_field(name="Jogo", value="\n".join(games))
             embed.add_field(name="Enviar até", value="\n".join(times))
-
-            #reply = "Semanais abertas\nCodigo - Jogo\n"
-            #for w in weeklies:
-            #    reply += "%s - %s (aberta até %s às %s)\n" % (
-            #        str.upper(w.game.keys[0]), w.game,
-            #        w.submission_end.strftime("%d/%m/%Y"), w.submission_end.strftime("%H:%M")
-            #    )
             await ctx.message.reply(embed=embed)
 
 
@@ -91,21 +86,7 @@ class Weekly(commands.Cog, name="Semanais"):
                     "Você já participou da semanal de %s. Caso tenha concluído a seed mas ainda não enviou o seu VOD, você pode fazê-lo utilizando o comando %svod" % (game, ctx.prefix)
                 )
 
-            embed = discord.Embed(
-                title="ZRBR Semanal - %s" % game,
-                description="""
-                SEED: %s
-                HASH: %s
-                
-                PROCEDIMENTOS PARA A SUBMISSÃO:
-                1) Jogue a seed acima e, ao terminá-la, faça um print contendo a tela do jogo e o seu timer.
-                2) Envie o comando "%stime <tempo_final>" neste chat privado com o seu tempo final e anexe o print acima na mesma mensagem. 
-                3) Envie o vídeo para o lugar que se sinta mais confortável e utilize o comando "%svod <link_para_o_vod>" aqui mesmo para submetê-lo.
-                A submissão do tempo e do vod se encerram no dia %s às %s.
-                """ % (weekly.seed_url, weekly.seed_hash, ctx.prefix, ctx.prefix, weekly.submission_end.strftime("%d/%m/%Y"),
-                       weekly.submission_end.strftime("%H:%M")),
-                color=0xFF0000
-            )
+            embed = embeds.seed_embed(weekly)
             await ctx.author.send(embed=embed)
             logger.info("The seed for %s was sent to %s", game, get_discord_name(author))
 
