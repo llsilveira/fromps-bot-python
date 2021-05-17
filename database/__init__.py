@@ -52,7 +52,7 @@ class Database:
 
     def list_open_weeklies(self, session):
         return session.execute(
-            select(Weekly).where(Weekly.status == WeeklyStatus.OPEN).order_by(Weekly.submission_end)
+            select(Weekly).where(Weekly.status == WeeklyStatus.OPEN)
         ).scalars().all()
 
     def create_weekly(self, session, game, seed_url, seed_hash, submission_end, *, force_close=False):

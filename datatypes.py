@@ -13,7 +13,6 @@ class EntryStatus(enum.Enum):
     DNF = 'DNF'
 
 
-
 class Games(enum.Enum):
     ALTTPR = (
         "A Link to the Past Randomizer",

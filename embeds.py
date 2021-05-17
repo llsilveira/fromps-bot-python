@@ -1,5 +1,6 @@
 import discord
 import re
+from datetime import datetime
 
 
 def seed_embed(weekly):
@@ -27,7 +28,7 @@ def seed_embed(weekly):
         
         - Você não poderá requisitar uma seed de outro jogo até que tenha enviado o seu tempo de conclusão. Se você não pretende terminar esta seed envie o comando **!forfeit** neste chat privado (você receberá instruções para confirmar esta ação).
         
-        - Você deve enviar o seu tempo assim que terminar de jogar a seed, mas a sua gravação pode ser enviada a posteriori, desde que não ultrapasse o limite de envios para esta semanal, que é %s às %s (horário de Brasília).
+        - Você deve enviar o seu tempo assim que terminar de jogar a seed, mas a sua gravação pode ser enviada a posteriori, desde que não ultrapasse o limite de envios para esta semanal, no dia **%s** às **%s** (horário de Brasília).
         
         
         **GLHF**
@@ -42,5 +43,30 @@ def seed_embed(weekly):
         embed.set_image(url=weekly.seed_hash)
     else:
         embed.add_field(name="Código de Verificação", value=weekly.seed_hash, inline=False)
+
+    return embed
+
+
+def list_embed(weeklies):
+    weeklies = sorted(weeklies, key=lambda v: 2 if v.submission_end <= datetime.now() else 1)
+    embed = discord.Embed(title="Semanais da ZRBR")
+    if len(weeklies) > 0:
+        codes = []
+        games = []
+        times = []
+        for w in weeklies:
+            codes.append(w.game.keys[0])
+            games.append(str(w.game))
+
+            if w.submission_end > datetime.now():
+                times.append(w.submission_end.strftime("%d/%m/%Y %H:%M"))
+            else:
+                times.append("ENCERRADO")
+
+        embed.add_field(name="Código", value="\n".join(codes))
+        embed.add_field(name="Jogo", value="\n".join(games))
+        embed.add_field(name="Enviar até", value="\n".join(times))
+    else:
+        embed.description = "Nenhuma semanal aberta no momento."
 
     return embed

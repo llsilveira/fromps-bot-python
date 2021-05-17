@@ -1,4 +1,3 @@
-import discord
 from discord.ext import commands
 from datetime import datetime
 
@@ -23,33 +22,11 @@ class Weekly(commands.Cog, name="Semanais"):
         name='semanais',
         help="Listar as semanais abertas"
     )
-    async def weeklies(self, ctx, *args):
+    async def weeklies(self, ctx):
         with self.db.Session() as session:
             weeklies = self.db.list_open_weeklies(session)
-            weeklies = [w for w in weeklies if w.submission_end > datetime.now()]
-
-            if len(weeklies) == 0:
-                raise SeedBotException("Nenhuma semanal aberta no momento.")
-
-            embed = discord.Embed(
-                title="Semanais da ZRBR",
-            )
-
-            codes = []
-            games = []
-            times = []
-
-            for w in weeklies:
-                codes.append(str.upper(w.game.keys[0]))
-                games.append(str(w.game))
-                times.append(w.submission_end.strftime("%d/%m/%Y %H:%M"))
-
-            embed.add_field(name="Código", value="\n".join(codes))
-            embed.add_field(name="Jogo", value="\n".join(games))
-            embed.add_field(name="Enviar até", value="\n".join(times))
+            embed = embeds.list_embed(weeklies)
             await ctx.message.reply(embed=embed)
-
-
 
     @commands.command(
         name='seed',
@@ -219,7 +196,6 @@ class Weekly(commands.Cog, name="Semanais"):
             else:
                 await ctx.message.reply("Nenhuma entrada resgistrada.")
 
-
     @commands.command(
         name="weeklycreate",
         hidden=True
@@ -251,7 +227,6 @@ class Weekly(commands.Cog, name="Semanais"):
             self.db.create_weekly(session, game, args[1], args[2], submission_end)
             await ctx.message.reply("Semanal de %s criada com sucesso!" % game)
             logger.info("A new weekly for %s was created.", game)
-
 
     @commands.command(
         name="weeklyclose",

@@ -36,4 +36,4 @@ class GameConverter:
 
     @staticmethod
     def convert(argument):
-        return GameConverter.get_reverse_map().get(argument, None)
+        return GameConverter.get_reverse_map().get(str.lower(argument), None)
