@@ -2,7 +2,7 @@ from discord.ext import commands
 from datetime import datetime
 
 from datatypes import EntryStatus
-from helpers import get_discord_name, GameConverter, MonitorChecker
+from helpers import get_discord_name, GameConverter, TimeConverter, DatetimeConverter, MonitorChecker
 from exceptions import SeedBotException
 
 import embeds
@@ -20,7 +20,8 @@ class Weekly(commands.Cog, name="Semanais"):
 
     @commands.command(
         name='semanais',
-        help="Listar as semanais abertas"
+        aliases=['weeklies'],
+        help="Listar as semanais abertas."
     )
     async def weeklies(self, ctx):
         with self.db.Session() as session:
@@ -30,17 +31,15 @@ class Weekly(commands.Cog, name="Semanais"):
 
     @commands.command(
         name='seed',
-        help="Solicitar seed da semanal"
+        aliases=['semente'],
+        help='Solicitar a seed da semanal de sua escolha. O código do jogo é informado na lista de semanais abertas.',
+        brief='Solicitar a seed da semanal de sua escolha.',
+        ignore_extra=False
     )
-    async def seed(self, ctx, *args):
+    async def seed(self, ctx, codigo_do_jogo: GameConverter()):
+        game = codigo_do_jogo
+
         with self.db.Session() as session:
-            if len(args) != 1:
-                raise SeedBotException("O formato correto deste comando é: %s%s <codigo_do_jogo>" % (ctx.prefix, ctx.invoked_with))
-
-            game = GameConverter.convert(args[0])
-            if game is None:
-                raise SeedBotException("Jogo desconhecido.")
-
             weekly = self.db.get_open_weekly(session, game)
             if weekly is None:
                 raise SeedBotException("A semanal de %s não está aberta." % game)
@@ -69,18 +68,15 @@ class Weekly(commands.Cog, name="Semanais"):
 
     @commands.command(
         name="time",
-        help="*Apenas no privado* Enviar o tempo final da seed jogada"
+        aliases=['tempo'],
+        help="Enviar o tempo final da seed jogada.\nO tempo deve estar no formato 'H:MM:SS'.\nVocê deve anexar, na mesma mensagem, o print com a tela do jogo e o seu timer.\nEste comando deve ser utilizado APENAS NO PRIVADO.",
+        brief="*NO PRIVADO* Enviar o tempo final da seed jogada.",
+        ignore_extra=False
     )
-    async def time(self, ctx, *args):
+    async def time(self, ctx, tempo: TimeConverter("%H:%M:%S", "H:MM:SS")):
+        time = tempo
+
         with self.db.Session() as session:
-            if len(args) != 1:
-                raise SeedBotException("O formato correto deste comando é: %s%s H:MM:SS" % (ctx.prefix, ctx.invoked_with))
-
-            try:
-                time = datetime.strptime(args[0], "%H:%M:%S").time()
-            except Exception:
-                raise SeedBotException("O tempo deve estar no formato 'H:MM:SS'")
-
             author_id = ctx.author.id
             entry = self.db.get_registered_entry(session, author_id)
             if entry is None:
@@ -110,18 +106,20 @@ class Weekly(commands.Cog, name="Semanais"):
 
     @commands.command(
         name="forfeit",
-        help="*Apenas no privado* Desistir da participação na semanal atual"
+        aliases=['desistir'],
+        help="Desistir da participação na semanal atual.\nEste comando deve ser utilizado APENAS NO PRIVADO.",
+        brief="*NO PRIVADO* Desistir da participação na semanal atual."
     )
-    async def forfeit(self, ctx, *args):
+    async def forfeit(self, ctx, *, ok: str=None):
         with self.db.Session() as session:
             author_id = ctx.author.id
             entry = self.db.get_registered_entry(session, author_id)
             if entry is None:
                 raise SeedBotException("Você já registrou seu tempo ou não está participando de uma semanal.")
 
-            if len(args) < 1 or len(args) > 1 or str.lower(args[0]) != "ok":
+            if ok is None or str.lower(ok) != "ok":
                 raise SeedBotException(
-                    "Confirme sua desistência da semanal de %s ação enviando o comando '%sforfeit ok' aqui." % (entry.weekly.game, ctx.prefix)
+                    "Confirme sua desistência da semanal de %s ação enviando o comando '%s%s ok' aqui." % (entry.weekly.game, ctx.prefix, ctx.invoked_with)
                 )
 
             self.db.forfeit_player(session, entry.weekly, author_id)
@@ -130,18 +128,16 @@ class Weekly(commands.Cog, name="Semanais"):
 
     @commands.command(
         name="vod",
-        help="*Apenas no privado* Enviar o vod da seed jogada"
+        aliases=['video', 'gravacao'],
+        help=" Enviar o VOD da seed jogada.\nVocê deve informar o jogo para o qual está enviando do seu VOD e a URL. O código do jogo é informado na lista de semanais abertas.\nEste comando deve ser utilizado APENAS NO PRIVADO.",
+        brief="*NO PRIVADO* Enviar o VOD da seed jogada",
+        ignore_extra=False
     )
-    async def vod(self, ctx, *args):
+    async def vod(self, ctx, codigo_do_jogo: GameConverter(), url_do_vod: str):
+        game = codigo_do_jogo
+        vod_url = url_do_vod
+
         with self.db.Session() as session:
-            if len(args) != 2:
-                raise SeedBotException("O formato correto deste comando é: %s%s <codigo_do_jogo> <vod_url>" % (ctx.prefix, ctx.invoked_with))
-
-            game = GameConverter.convert(args[0])
-            if game is None:
-                raise SeedBotException("Jogo desconhecido.")
-            vod_url = args[1]
-
             weekly = self.db.get_open_weekly(session, game)
             if weekly is None:
                 raise SeedBotException("Não há uma semanal de %s em andamento." % game)
@@ -162,19 +158,16 @@ class Weekly(commands.Cog, name="Semanais"):
 
     @commands.command(
         name="entries",
-        hidden=True
+        aliases=['entradas', 'inscricoes'],
+        hidden=True,
+        ignore_extra=False
     )
-    async def entries(self, ctx, *args):
+    async def entries(self, ctx, codigo_do_jogo: GameConverter()):
+        game = codigo_do_jogo
+
         with self.db.Session() as session:
             if not self.monitor_checker.is_monitor(ctx.author):
                 raise SeedBotException("Este comando deve ser executado apenas por monitores.")
-
-            if len(args) != 1:
-                raise SeedBotException("O formato correto deste comando é: %s%s <codigo_do_jogo>" % (ctx.prefix, ctx.invoked_with))
-
-            game = GameConverter.convert(args[0])
-            if game is None:
-                raise SeedBotException("Jogo desconhecido.")
 
             if not self.monitor_checker.is_monitor(ctx.author, game):
                 raise SeedBotException("Você não é monitor de %s." % game)
@@ -198,51 +191,55 @@ class Weekly(commands.Cog, name="Semanais"):
 
     @commands.command(
         name="weeklycreate",
-        hidden=True
+        aliases=['criarsemanal'],
+        help="Criar uma nova semanal.\nVocê não poderá criar uma semanal para um jogo que ainda não foi fechado.\nSe o código de verificação fornecido for uma URL, esta será tratada como uma imagem.\nSe algum parâmetro contiver espaços, ele deverá estar \"entre aspas\".\nEste comando deve ser utilizado APENAS NO PRIVADO.",
+        brief="*NO PRIVADO* Criar uma nova semanal.",
+        ignore_extra=False,
+        hidden=True,
     )
-    async def weeklycreate(self, ctx, *args):
+    async def weeklycreate(
+            self,
+            ctx,
+            codigo_do_jogo: GameConverter,
+            url_da_seed,
+            codigo_de_verificação: str,
+            limite_para_envios: DatetimeConverter("%d/%m/%Y-%H:%M", "dd/mm/aaaa-HH:MM")
+    ):
+        game = codigo_do_jogo
+        seed_url = url_da_seed
+        hash_str = codigo_de_verificação
+        submission_end = limite_para_envios
+
         with self.db.Session() as session:
+
             if not self.monitor_checker.is_monitor(ctx.author):
                 raise SeedBotException("Este comando deve ser executado apenas por monitores.")
 
-            if len(args) != 4:
-                raise SeedBotException("O formato correto deste comando é: %s%s <codigo_do_jogo> <seed> <hash> <dd/mm/aaaa-HH:MM>" % (ctx.prefix, ctx.invoked_with))
-
-            game = GameConverter.convert(args[0])
-            if game is None:
-                raise SeedBotException("Jogo desconhecido.")
-
             if not self.monitor_checker.is_monitor(ctx.author, game):
                 raise SeedBotException("Você não é monitor de %s." % game)
-
-            try:
-                submission_end = datetime.strptime(args[3], "%d/%m/%Y-%H:%M")
-            except Exception:
-                raise SeedBotException("O tempo limite para submissões deve estar no formato 'dd/mm/aaaa-HH:MM'")
 
             weekly = self.db.get_open_weekly(session, game)
             if weekly is not None:
                 raise SeedBotException("Há uma semanal aberta para %s. Feche-a primeiro antes de criar uma nova." % game)
 
-            self.db.create_weekly(session, game, args[1], args[2], submission_end)
+            self.db.create_weekly(session, game, seed_url, hash_str, submission_end)
             await ctx.message.reply("Semanal de %s criada com sucesso!" % game)
             logger.info("A new weekly for %s was created.", game)
 
     @commands.command(
         name="weeklyclose",
-        hidden=True
+        aliases=['encerrarsemanal'],
+        help="Encerra completamente uma semanal.\nExecute este comando apenas quando a semanal estiver completamente concluída, pois não será mais possível listar as entradas após isto.\nAo executar este comando, todos os jogadores que não tiverem concluído completamente sua participação (enviando o tempo e o VOD), receberão o status 'DNF'\nEste comando deve ser utilizado APENAS NO PRIVADO.",
+        brief="*NO PRIVADO* Encerra completamente uma semanal.",
+        ignore_extra=False,
+        hidden=True,
     )
-    async def weeklyclose(self, ctx, *args):
+    async def weeklyclose(self, ctx, codigo_do_jogo: GameConverter()):
+        game = codigo_do_jogo
+
         with self.db.Session() as session:
             if not self.monitor_checker.is_monitor(ctx.author):
                 raise SeedBotException("Este comando deve ser executado apenas por monitores.")
-
-            if len(args) != 1:
-                raise SeedBotException("O formato correto deste comando é: %s%s <codigo_do_jogo>" % (ctx.prefix, ctx.invoked_with))
-
-            game = GameConverter.convert(args[0])
-            if game is None:
-                raise SeedBotException("Jogo desconhecido.")
 
             if not self.monitor_checker.is_monitor(ctx.author, game):
                 raise SeedBotException("Você não é monitor de %s." % game)

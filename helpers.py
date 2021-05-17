@@ -1,3 +1,6 @@
+from discord.ext import commands
+from datetime import datetime
+
 from datatypes import Games
 
 
@@ -23,7 +26,25 @@ class MonitorChecker:
         return False
 
 
-class GameConverter:
+class DatetimeConverter(commands.Converter):
+    def __init__(self, parse_format, description_format):
+        self.parse_format = parse_format
+        self.description_format = description_format
+
+    async def convert(self, ctx, argument):
+        return datetime.strptime(argument, self.parse_format)
+
+
+class TimeConverter(DatetimeConverter):
+    def __init__(self, parse_format, description_format):
+        super().__init__(parse_format, description_format)
+
+    async def convert(self, ctx, argument):
+        var = await super().convert(ctx, argument)
+        return var.time()
+
+
+class GameConverter(commands.Converter):
     @staticmethod
     def get_reverse_map():
         if not hasattr(GameConverter, 'reverse_map'):
@@ -34,6 +55,9 @@ class GameConverter:
             GameConverter.reverse_map = reverse_map
         return GameConverter.reverse_map
 
-    @staticmethod
-    def convert(argument):
-        return GameConverter.get_reverse_map().get(str.lower(argument), None)
+    async def convert(self, ctx, argument):
+        game = GameConverter.get_reverse_map().get(str.lower(argument), None)
+        if game is None:
+            raise ValueError("Game not found!")
+        return game
+
