@@ -37,6 +37,7 @@ class SeedbotHelpCommand(commands.DefaultHelpCommand):
         command_name = self.invoked_with
         return "Envie '{0}{1} comando' para mais informações sobre um comando.".format(self.clean_prefix, command_name)
 
+
 bot = commands.Bot(
     command_prefix=cfg['bot']['command_prefix'],
     intents=intents,
@@ -55,9 +56,10 @@ param_map = {
     "tempo": "o tempo",
     "url_do_vod": "a URL do seu VOD",
     "url_da_seed": "a URL da seed",
-    "codigo_de_verificação": "o código de verificação",
+    "codigo_de_verificacao": "o código de verificação",
     "limite_para_envios": "o limite para envios"
 }
+
 
 async def ping_on_error(ctx, error):
     user = await bot.fetch_user(cfg['bot']['ping_on_error'])
@@ -74,6 +76,7 @@ async def ping_on_error(ctx, error):
     """ % (ctx.message.content, get_discord_name(ctx.author), type(error), str(error))
 
     await dm.send(msg)
+
 
 @bot.event
 async def on_message(message):

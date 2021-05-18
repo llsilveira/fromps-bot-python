@@ -110,7 +110,7 @@ class Weekly(commands.Cog, name="Semanais"):
         help="Desistir da participação na semanal atual.\nEste comando deve ser utilizado APENAS NO PRIVADO.",
         brief="*NO PRIVADO* Desistir da participação na semanal atual."
     )
-    async def forfeit(self, ctx, *, ok: str=None):
+    async def forfeit(self, ctx, *, ok: str = None):
         with self.db.Session() as session:
             author_id = ctx.author.id
             entry = self.db.get_registered_entry(session, author_id)
@@ -202,12 +202,12 @@ class Weekly(commands.Cog, name="Semanais"):
             ctx,
             codigo_do_jogo: GameConverter,
             url_da_seed,
-            codigo_de_verificação: str,
+            codigo_de_verificacao: str,
             limite_para_envios: DatetimeConverter("%d/%m/%Y-%H:%M", "dd/mm/aaaa-HH:MM")
     ):
         game = codigo_do_jogo
         seed_url = url_da_seed
-        hash_str = codigo_de_verificação
+        hash_str = codigo_de_verificacao
         submission_end = limite_para_envios
 
         with self.db.Session() as session:
