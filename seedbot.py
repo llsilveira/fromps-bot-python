@@ -44,9 +44,10 @@ bot = commands.Bot(
     help_command=SeedbotHelpCommand()
 )
 
-filter_signup = re.compile(r'^' + re.escape(cfg['bot']['command_prefix']) + r"(ajuda|semanais|weeklies|semente|seed).*$")
+filter_command = re.compile(r'^' + re.escape(cfg['bot']['command_prefix']) + r'(.*)$')
+filter_signup = re.compile(r'^' + re.escape(cfg['bot']['command_prefix']) + r'(ajuda|semanais|weeklies|semente|seed).*$')
 filter_dm = re.compile(
-    r'^' + re.escape(cfg['bot']['command_prefix']) + r"(ajuda|semanais|weeklies|tempo|time|desistir|forfeit|video|gravacao|vod|entradas|inscricoes|entries|criarsemanal|weeklycreate|encerrarsemanal|weeklyclose).*$"
+    r'^' + re.escape(cfg['bot']['command_prefix']) + r'(ajuda|semanais|weeklies|tempo|time|desistir|forfeit|video|gravacao|vod|entradas|inscricoes|entries|criarsemanal|weeklycreate|encerrarsemanal|weeklyclose).*$'
 )
 signup_channel = cfg['bot']['signup_channel']
 testing = cfg['general'].get('testing', False)
@@ -86,35 +87,31 @@ async def on_message(message):
             not isinstance(message.channel, discord.DMChannel) and message.channel.id != signup_channel):
         return
 
+    is_command = filter_command.match(message.content)
     signup_command = filter_signup.match(message.content)
     dm_command = filter_dm.match(message.content)
 
     # ignore any message that is not a command supposed to be sent in private
     if isinstance(message.channel, discord.DMChannel):
-        if not dm_command:
-
-            # inform the author if it is a command supposed to be sent on the signup channel
-            if signup_command:
-                await message.reply(
-                    "O comando '%s' deve ser usado no canal #%s." % (
-                        signup_command.group(0), bot.get_channel(signup_channel).name))
-
+        if not is_command:
+            return
+        if not dm_command and signup_command:
+            await message.reply(
+                "O comando '%s' deve ser usado no canal #%s." % (
+                    signup_command.group(1), bot.get_channel(signup_channel).name))
             return
 
     # ignore any message that is not a command supposed to be sent on the signup channel
     elif message.channel.id == signup_channel:
         if not signup_command:
-
             # The message is deleted to maintain the channel clean and spoiler free. For testing purposes, only commands
             # that are supposed to be sent in private are deleted when testing mode is active
             if not testing or dm_command:
                 await message.delete()
-
             # inform the author if the command should be sent in private
             if dm_command:
                 await message.author.send(
-                    "O comando '%s' deve ser usado neste canal privado." % dm_command.group(0))
-
+                    "O comando '%s' deve ser usado neste canal privado." % dm_command.group(1))
             return
 
     async with message.channel.typing():
@@ -161,6 +158,10 @@ async def on_command_error(ctx, error):
             await ctx.reply(msg)
         else:
             await handle_unknown_exception()
+
+    elif isinstance(error, commands.errors.CommandNotFound):
+        await ctx.reply("Comando não encontrado.")
+
     else:
         await handle_unknown_exception()
 

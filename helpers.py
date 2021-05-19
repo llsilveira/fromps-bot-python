@@ -30,6 +30,7 @@ class DatetimeConverter(commands.Converter):
     def __init__(self, parse_format, description_format):
         self.parse_format = parse_format
         self.description_format = description_format
+        super().__init__()
 
     async def convert(self, ctx, argument):
         return datetime.strptime(argument, self.parse_format)
