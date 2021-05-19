@@ -2,6 +2,7 @@ from discord.ext import commands
 from datetime import datetime
 
 from datatypes import Games
+from exceptions import SeedBotException
 
 
 def get_discord_name(discord_user):
@@ -24,6 +25,13 @@ class MonitorChecker:
             if user_name in monitor_list:
                 return True
         return False
+
+    def check(self, user, game):
+        if not self.is_monitor(user):
+            raise SeedBotException("Este comando deve ser executado apenas por monitores.")
+
+        if not self.is_monitor(user, game):
+            raise SeedBotException("Você não é monitor de %s." % game)
 
 
 class DatetimeConverter(commands.Converter):

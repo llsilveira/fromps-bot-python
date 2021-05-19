@@ -29,16 +29,16 @@ class Games(enum.Enum):
         ["mm", "mmr", "majora", "majoras", "majora's"],
         0xae27cf,
     )
-    SMZ3 = (
-        "SMZ3 Combo Randomizer",
-        ["smz3", "alttpsm", "s3z3", "combo"],
-        0x000000,
-    )
     PKMN_CRYSTAL = (
         "Pokemon Crystal Full Item Randomizer",
         ["pkmn", "pokemon", "pkm", "poke", "pokémon"],
         0xFFCB06,
     )
+#    SMZ3 = (
+#        "SMZ3 Combo Randomizer",
+#        ["smz3", "alttpsm", "s3z3", "combo"],
+#        0x000000,
+#    )
 
     def __init__(self, str, keys, color):
         self.str = str

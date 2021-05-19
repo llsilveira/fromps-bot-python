@@ -1,12 +1,12 @@
 from discord.ext import commands
 from datetime import datetime
 
-from datatypes import EntryStatus
+from datatypes import Games, EntryStatus
 from helpers import get_discord_name, GameConverter, TimeConverter, DatetimeConverter, MonitorChecker
 from exceptions import SeedBotException
-
 import embeds
 
+import yaml
 import logging
 logger = logging.getLogger(__name__)
 
@@ -17,6 +17,18 @@ class Weekly(commands.Cog, name="Semanais"):
         self.config = config
         self.db = database
         self.monitor_checker = MonitorChecker(config)
+
+        # Load instructions file
+        with open(self.config['instructions_file'], 'r') as instructions_file:
+            try:
+                instructions = yaml.safe_load(instructions_file)
+            except Exception as e:
+                logger.exception(e)
+                raise
+        self.instructions = {'ALL': instructions['ALL']}
+        self.instructions.update({
+            Games[game_name]: instruction for game_name, instruction in instructions.items() if game_name != 'ALL'
+        })
 
     @commands.command(
         name='semanais',
@@ -62,7 +74,7 @@ class Weekly(commands.Cog, name="Semanais"):
                     "Você já participou da semanal de %s. Caso tenha concluído a seed mas ainda não enviou o seu VOD, você pode fazê-lo utilizando o comando %svod" % (game, ctx.prefix)
                 )
 
-            embed = embeds.seed_embed(weekly)
+            embed = embeds.seed_embed(weekly, self.instructions)
             await ctx.author.send(embed=embed)
             logger.info("The seed for %s was sent to %s", game, get_discord_name(author))
 
@@ -164,14 +176,9 @@ class Weekly(commands.Cog, name="Semanais"):
     )
     async def entries(self, ctx, codigo_do_jogo: GameConverter()):
         game = codigo_do_jogo
+        self.monitor_checker.check(ctx.author, game)
 
         with self.db.Session() as session:
-            if not self.monitor_checker.is_monitor(ctx.author):
-                raise SeedBotException("Este comando deve ser executado apenas por monitores.")
-
-            if not self.monitor_checker.is_monitor(ctx.author, game):
-                raise SeedBotException("Você não é monitor de %s." % game)
-
             weekly = self.db.get_open_weekly(session, game)
             if weekly is None:
                 raise SeedBotException("Não há uma semanal de %s em andamento." % game)
@@ -209,15 +216,9 @@ class Weekly(commands.Cog, name="Semanais"):
         seed_url = url_da_seed
         hash_str = codigo_de_verificacao
         submission_end = limite_para_envios
+        self.monitor_checker.check(ctx.author, game)
 
         with self.db.Session() as session:
-
-            if not self.monitor_checker.is_monitor(ctx.author):
-                raise SeedBotException("Este comando deve ser executado apenas por monitores.")
-
-            if not self.monitor_checker.is_monitor(ctx.author, game):
-                raise SeedBotException("Você não é monitor de %s." % game)
-
             weekly = self.db.get_open_weekly(session, game)
             if weekly is not None:
                 raise SeedBotException("Há uma semanal aberta para %s. Feche-a primeiro antes de criar uma nova." % game)
@@ -236,14 +237,9 @@ class Weekly(commands.Cog, name="Semanais"):
     )
     async def weeklyclose(self, ctx, codigo_do_jogo: GameConverter()):
         game = codigo_do_jogo
+        self.monitor_checker.check(ctx.author, game)
 
         with self.db.Session() as session:
-            if not self.monitor_checker.is_monitor(ctx.author):
-                raise SeedBotException("Este comando deve ser executado apenas por monitores.")
-
-            if not self.monitor_checker.is_monitor(ctx.author, game):
-                raise SeedBotException("Você não é monitor de %s." % game)
-
             weekly = self.db.get_open_weekly(session, game)
             if weekly is None:
                 raise SeedBotException("A semanal de %s não está aberta." % game)
