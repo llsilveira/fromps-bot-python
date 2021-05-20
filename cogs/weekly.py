@@ -17,6 +17,7 @@ class Weekly(commands.Cog, name="Semanais"):
         self.config = config
         self.db = database
         self.monitor_checker = MonitorChecker(config)
+        self.hash_handler = SeedHashHandler(self.bot)
 
         # Load instructions file
         with open(self.config['instructions_file'], 'r') as instructions_file:
@@ -214,7 +215,7 @@ class Weekly(commands.Cog, name="Semanais"):
     ):
         game = codigo_do_jogo
         seed_url = url_da_seed
-        hash_str = codigo_de_verificacao
+        hash_str = self.hash_handler.get_hash(game, codigo_de_verificacao)
         submission_end = limite_para_envios
         self.monitor_checker.check(ctx.author, game)
 

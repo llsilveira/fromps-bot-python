@@ -1,6 +1,9 @@
 import discord
-import re
 from datetime import datetime
+from datatypes import Games
+
+import logging
+logger = logging.getLogger(__name__)
 
 
 def seed_embed(weekly, instructions):
@@ -14,7 +17,7 @@ def seed_embed(weekly, instructions):
         description=description
     )
 
-    if re.match("https?://", weekly.seed_hash):
+    if game is Games.MMR:
         embed.set_image(url=weekly.seed_hash)
     else:
         embed.description += weekly.seed_hash
