@@ -1,8 +1,9 @@
 from discord.ext import commands
 from datetime import datetime
 
-from datatypes import Games, EntryStatus
-from helpers import get_discord_name, GameConverter, TimeConverter, DatetimeConverter, MonitorChecker
+from database import model
+from datatypes import Games, EntryStatus, WeeklyStatus
+from helpers import get_discord_name, GameConverter, TimeConverter, DatetimeConverter, MonitorChecker, SeedHashHandler
 from exceptions import SeedBotException
 import embeds
 
@@ -227,6 +228,38 @@ class Weekly(commands.Cog, name="Semanais"):
             self.db.create_weekly(session, game, seed_url, hash_str, submission_end)
             await ctx.message.reply("Semanal de %s criada com sucesso!" % game)
             logger.info("A new weekly for %s was created.", game)
+
+    @commands.command(
+        name="weeklytestcreate",
+        help="Testa a criação de uma semanal.\nEste comando deve ser utilizado APENAS NO PRIVADO.",
+        brief="*NO PRIVADO* Testa a criação de uma semanal.",
+        ignore_extra=False,
+        hidden=True,
+    )
+    async def weeklytestcreate(
+            self,
+            ctx,
+            codigo_do_jogo: GameConverter,
+            url_da_seed,
+            codigo_de_verificacao: str,
+            limite_para_envios: DatetimeConverter("%d/%m/%Y-%H:%M", "dd/mm/aaaa-HH:MM")
+    ):
+        game = codigo_do_jogo
+        seed_url = url_da_seed
+        hash_str = self.hash_handler.get_hash(game, codigo_de_verificacao)
+        submission_end = limite_para_envios
+        self.monitor_checker.check(ctx.author, game)
+
+        weekly = model.Weekly(
+            game=game,
+            status=WeeklyStatus.OPEN,
+            seed_url=seed_url,
+            seed_hash=hash_str,
+            created_at=datetime.now(),
+            submission_end=submission_end
+        )
+        embed = embeds.seed_embed(weekly, self.instructions)
+        await ctx.author.send(embed=embed)
 
     @commands.command(
         name="weeklyclose",
