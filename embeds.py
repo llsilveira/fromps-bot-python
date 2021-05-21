@@ -8,8 +8,8 @@ logger = logging.getLogger(__name__)
 
 def seed_embed(weekly, instructions):
     game = weekly.game
-    description = instructions['ALL'] + "\n" + instructions[game]
-    description += "\n**Link:** " + weekly.seed_url + "\n\n**Código de Verificação:** "
+    description = instructions['ALL'].format(weekly=weekly) + "\n" + instructions[game]
+    description += "\n**Seed:** " + weekly.seed_url + "\n\n**Código de Verificação:** "
 
     embed = discord.Embed(
         title="ZRBR Semanal - %s" % weekly.game,
