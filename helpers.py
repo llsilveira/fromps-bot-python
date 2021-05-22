@@ -73,7 +73,7 @@ class SeedHashHandler:
         try:
             return SeedHashHandler._get_map()[game][SeedHashHandler._translate(item)]
         except KeyError:
-            raise SeedBotException("Não foi possível encontrar o emoji para '%s'." % item)
+            raise SeedBotException("Valor desconhecido para o hash: '%s'." % item)
 
     @staticmethod
     def _get_map():

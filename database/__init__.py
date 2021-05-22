@@ -78,6 +78,14 @@ class Database:
         logger.debug("A weekly was created: %s", weekly)
         return weekly
 
+    def update_weekly(self, session, weekly, seed_url, seed_hash, submission_end):
+        weekly.seed_url = seed_url
+        weekly.seed_hash = seed_hash
+        weekly.submission_end = submission_end
+        session.commit()
+        logger.debug("A weekly was updated: %s", weekly)
+        return weekly
+
     def close_weekly(self, session, weekly):
         for entry in weekly.entries:
             if entry.status == EntryStatus.REGISTERED:

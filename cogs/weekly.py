@@ -106,7 +106,7 @@ class Weekly(commands.Cog, name="Semanais"):
 
             self.db.submit_time(session, entry.weekly, author_id, time, ctx.message.attachments[0].url)
             await ctx.message.reply(
-                "Seu tempo de %s na semanal de %s foi registrado! Não esqueça de submeter o seu VOD através do comando "
+                "Seu tempo de %s na semanal de %s foi registrado! Não esqueça de enviar o seu vídeo através do comando "
                 "'%svod' até %s às %s." % (
                     time.strftime("%H:%M:%S"),
                     entry.weekly.game,
@@ -230,13 +230,14 @@ class Weekly(commands.Cog, name="Semanais"):
             logger.info("A new weekly for %s was created.", game)
 
     @commands.command(
-        name="weeklytestcreate",
+        name="weeklytest",
+        aliases=['testarsemanal'],
         help="Testa a criação de uma semanal.\nEste comando deve ser utilizado APENAS NO PRIVADO.",
         brief="*NO PRIVADO* Testa a criação de uma semanal.",
         ignore_extra=False,
         hidden=True,
     )
-    async def weeklytestcreate(
+    async def weeklytest(
             self,
             ctx,
             codigo_do_jogo: GameConverter,
@@ -281,3 +282,37 @@ class Weekly(commands.Cog, name="Semanais"):
             self.db.close_weekly(session, weekly)
             await ctx.message.reply("Semanal de %s fechada com sucesso!" % game)
             logger.info("The weekly for %s was closed.", game)
+
+    @commands.command(
+        name="weeklyupdate",
+        aliases=['alterarsemanal'],
+        help="Criar uma nova semanal.\nVocê não poderá criar uma semanal para um jogo que ainda não foi fechado.\nSe o código de verificação fornecido for uma URL, esta será tratada como uma imagem.\nSe algum parâmetro contiver espaços, ele deverá estar \"entre aspas\".\nEste comando deve ser utilizado APENAS NO PRIVADO.",
+        brief="*NO PRIVADO* Criar uma nova semanal.",
+        ignore_extra=False,
+        hidden=True,
+    )
+    async def weeklyupdate(
+            self,
+            ctx,
+            codigo_do_jogo: GameConverter,
+            url_da_seed,
+            codigo_de_verificacao: str,
+            limite_para_envios: DatetimeConverter("%d/%m/%Y-%H:%M", "dd/mm/aaaa-HH:MM")
+    ):
+        game = codigo_do_jogo
+        seed_url = url_da_seed
+        hash_str = self.hash_handler.get_hash(game, codigo_de_verificacao)
+        submission_end = limite_para_envios
+        self.monitor_checker.check(ctx.author, game)
+
+        with self.db.Session() as session:
+            weekly = self.db.get_open_weekly(session, game)
+            if weekly is None:
+                raise SeedBotException("Não há uma semanal aberta para %s." % game)
+
+            if len(weekly.entries) > 0 and weekly.seed_url != seed_url:
+                raise SeedBotException("Existem entradas registradas para esta semanal, portanto não é possível alterar a URL da seed.")
+
+            self.db.update_weekly(session, weekly, seed_url, hash_str, submission_end)
+            await ctx.message.reply("Semanal de %s atualizada com sucesso!" % game)
+            logger.info("The weekly for %s was updated.", game)
