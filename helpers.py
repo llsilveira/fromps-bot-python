@@ -63,7 +63,7 @@ class SeedHashHandler:
     def build_emoji_hash(self, game, hash_str):
         items = hash_str.split("/")
         emoji_list = list(map(
-            lambda item: str(discord.utils.get(self.bot.emojis, name=SeedHashHandler._get_emoji(game, item))),
+            lambda item: str(discord.utils.get(self.bot.emojis, name=SeedHashHandler._get_emoji(game, item.strip()))),
             items
         ))
         return " ".join(emoji_list)

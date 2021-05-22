@@ -1,5 +1,5 @@
 from discord.ext import commands
-from datetime import datetime
+from datetime import datetime, time
 
 from database import model
 from datatypes import Games, EntryStatus, WeeklyStatus
@@ -185,8 +185,10 @@ class Weekly(commands.Cog, name="Semanais"):
             if weekly is None:
                 raise SeedBotException("Não há uma semanal de %s em andamento." % game)
 
+            entries = sorted(weekly.entries, key=lambda e: e.finish_time if e.finish_time is not None else time(23, 59))
+
             reply = ""
-            for e in weekly.entries:
+            for e in entries:
                 reply += "Player: %s\nStatus: %s\n" % (e.discord_name, e.status.name)
                 if e.status in [EntryStatus.TIME_SUBMITTED, EntryStatus.DONE]:
                     reply += "Tempo: %s\nPrint: <%s>\n" % (e.finish_time, e.print_url)
