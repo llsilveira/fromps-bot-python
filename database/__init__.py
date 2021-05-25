@@ -141,8 +141,7 @@ class Database:
         session.commit()
         logger.debug("Entry changed: %s", entry)
 
-    def submit_time(self, session, weekly, discord_id, finish_time, print_url):
-        entry = self.get_player_entry(session, weekly, discord_id)
+    def submit_time(self, session, entry, finish_time, print_url):
         if entry.status != EntryStatus.REGISTERED:
             raise ConsistencyError(
                 "Attempt to register a time for a player that is not registered to a weekly."
@@ -154,9 +153,8 @@ class Database:
         session.commit()
         logger.debug("Entry changed: %s", entry)
 
-    def submit_vod(self, session, weekly, discord_id, vod_url):
-        entry = self.get_player_entry(session, weekly, discord_id)
-        if entry.status != EntryStatus.TIME_SUBMITTED:
+    def submit_vod(self, session, entry, vod_url):
+        if entry.status is not EntryStatus.TIME_SUBMITTED:
             raise ConsistencyError(
                 "Attempt to register a VOD for a player that did not have a time submitted for their weekly."
             )

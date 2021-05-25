@@ -7,7 +7,6 @@ from helpers import get_discord_name, GameConverter, TimeConverter, DatetimeConv
 from exceptions import SeedBotException
 import embeds
 
-import yaml
 import logging
 logger = logging.getLogger(__name__)
 
@@ -21,16 +20,60 @@ class Weekly(commands.Cog, name="Semanais"):
         self.hash_handler = SeedHashHandler(self.bot)
 
         # Load instructions file
-        with open(self.config['instructions_file'], 'r') as instructions_file:
-            try:
-                instructions = yaml.safe_load(instructions_file)
-            except Exception as e:
-                logger.exception(e)
-                raise
-        self.instructions = {'ALL': instructions['ALL']}
-        self.instructions.update({
-            Games[game_name]: instruction for game_name, instruction in instructions.items() if game_name != 'ALL'
-        })
+        #with open(self.config['instructions_file'], 'r') as instructions_file:
+        #    try:
+        #        instructions = yaml.safe_load(instructions_file)
+        #    except Exception as e:
+        #        logger.exception(e)
+        #        raise
+        #self.instructions = {'ALL': instructions['ALL']}
+        #self.instructions.update({
+        #    Games[game_name]: instruction for game_name, instruction in instructions.items() if game_name != 'ALL'
+        #})
+
+        self.instructions = {
+            'ALL': """\
+                Obrigado por participar desta semanal!
+
+                Ao jogar esta seed, grave a sua gameplay localmente, ou faça uma stream não listada no youtube sem\
+                divulgá-la a ninguém. Sua gravação deve conter, a todo momento, o timer e a imagem limpa do jogo. O\
+                áudio também deve estar limpo durante a gameplay (sem voz, músicas, etc). **Deixe um intervalo de pelo\
+                menos 1 minuto entre o início da gravação e o início da gameplay e grave toda a sequência de créditos\
+                após o fim do jogo**.
+                
+                Ao terminar a seed, envie um print contendo a tela final do jogo e o seu timer. O tempo enviado\
+                será o IRT, portanto não pause seu timer durante o jogo (caso aconteça um pause não intencional,\
+                calcule o tempo real utilizando a sua gravação e avise o monitor da semanal que o seu tempo foi\
+                recalculado). A explicação completa dos procedimentos para envio do seu tempo e da sua gravação\
+                encontra-se na mensagem pinada no canal **#semanais-seed**. O prazo final para enviar sua gravação se\
+                encerra em **{weekly.submission_end:%d/%m/%Y}** às **{weekly.submission_end:%H:%M}** (horário de\
+                Brasília).
+
+                GLHF!
+                --------
+            """,
+
+            Games.OOTR: """\
+                **Settings:** ZRBR Blitz (https://pastebin.com/3N0mnBrB)
+
+                **Instruções para gerar a ROM:** Salve o arquivo .zpf abaixo e acesse \
+                <https://ootrandomizer.com/generator>. Na aba 'ROM Options', selecione a opção 'Generate From Patch \
+                File'. Envie o arquivo .zpf que você baixou e clique em 'PATCH ROM!'
+                """,
+
+            Games.ALTTPR: """\
+                **Preset:** Openboots
+
+                **Quickswap:** Habilitado
+                """,
+            Games.MMR: """\
+                **Settings:** ZRBR (https://pastebin.com/ArbK7SXG)
+            """,
+
+            Games.PKMN_CRYSTAL: """\
+                **Settings e Regras:** https://pastebin.com/m1prCWKZ
+            """,
+        }
 
     @commands.command(
         name='semanais',
@@ -39,7 +82,7 @@ class Weekly(commands.Cog, name="Semanais"):
     )
     async def weeklies(self, ctx):
         with self.db.Session() as session:
-            weeklies = self.db.list_open_weeklies(session)
+            weeklies = sorted(self.db.list_open_weeklies(session), key=lambda w: w.submission_end)
             embed = embeds.list_embed(weeklies)
             await ctx.message.reply(embed=embed)
 
@@ -104,7 +147,7 @@ class Weekly(commands.Cog, name="Semanais"):
                     "Você deve enviar o print mostrando a tela final do jogo e o seu timer juntamente com este comando."
                 )
 
-            self.db.submit_time(session, entry.weekly, author_id, time, ctx.message.attachments[0].url)
+            self.db.submit_time(session, entry, time, ctx.message.attachments[0].url)
             await ctx.message.reply(
                 "Seu tempo de %s na semanal de %s foi registrado! Não esqueça de enviar o seu vídeo através do comando "
                 "'%svod' até %s às %s." % (
@@ -156,6 +199,9 @@ class Weekly(commands.Cog, name="Semanais"):
             if weekly is None:
                 raise SeedBotException("Não há uma semanal de %s em andamento." % game)
 
+            if datetime.now() >= weekly.submission_end:
+                raise SeedBotException("Os envios para a semanal de %s foram encerradas." % weekly.game)
+
             author_id = ctx.author.id
             entry = self.db.get_player_entry(session, weekly, author_id)
             if entry is None:
@@ -163,10 +209,12 @@ class Weekly(commands.Cog, name="Semanais"):
 
             if entry.status == EntryStatus.REGISTERED:
                 raise SeedBotException("Você deve submeter o seu tempo através do comando '%stime' antes de enviar o seu VOD." % ctx.prefix)
+            elif entry.status == EntryStatus.DONE:
+                raise SeedBotException("Você já enviou o seu VOD.")
             elif entry.status == EntryStatus.DNF:
                 raise SeedBotException("Você não está mais participando desta semanal.")
 
-            self.db.submit_vod(session, weekly, author_id, vod_url)
+            self.db.submit_vod(session, entry, vod_url)
             await ctx.message.reply("VOD recebido com sucesso! Agradecemos a sua participação!")
             logger.info("The VOD for %s was received from %s.", entry.weekly.game, get_discord_name(ctx.author))
 
