@@ -45,9 +45,7 @@ class Weekly(commands.Cog, name="Semanais"):
                 será o IRT, portanto não pause seu timer durante o jogo (caso aconteça um pause não intencional,\
                 calcule o tempo real utilizando a sua gravação e avise o monitor da semanal que o seu tempo foi\
                 recalculado). A explicação completa dos procedimentos para envio do seu tempo e da sua gravação\
-                encontra-se na mensagem pinada no canal **#semanais-seed**. O prazo final para enviar sua gravação se\
-                encerra em **{weekly.submission_end:%d/%m/%Y}** às **{weekly.submission_end:%H:%M}** (horário de\
-                Brasília).
+                encontra-se na mensagem pinada no canal **#semanais-seed**.
 
                 GLHF!
                 --------
@@ -102,7 +100,7 @@ class Weekly(commands.Cog, name="Semanais"):
                 raise SeedBotException("A semanal de %s não está aberta." % game)
 
             if datetime.now() >= weekly.submission_end:
-                raise SeedBotException("As submissões para a semanal de %s foram encerradas." % game)
+                raise SeedBotException("As inscrições para a semanal de %s foram encerradas." % game)
 
             author = ctx.author
             entry = self.db.get_player_entry(session, weekly, author.id)
@@ -139,8 +137,9 @@ class Weekly(commands.Cog, name="Semanais"):
             if entry is None:
                 raise SeedBotException("Você já registrou seu tempo ou não está participando de uma semanal aberta.")
 
-            if datetime.now() >= entry.weekly.submission_end:
-                raise SeedBotException("As submissões de tempo para a semanal de %s foram encerradas." % entry.weekly.game)
+            # Submissions of time are not limited for now
+            #if datetime.now() >= entry.weekly.submission_end:
+            #    raise SeedBotException("As submissões de tempo para a semanal de %s foram encerradas." % entry.weekly.game)
 
             if len(ctx.message.attachments) != 1:
                 raise SeedBotException(
@@ -149,13 +148,11 @@ class Weekly(commands.Cog, name="Semanais"):
 
             self.db.submit_time(session, entry, time, ctx.message.attachments[0].url)
             await ctx.message.reply(
-                "Seu tempo de %s na semanal de %s foi registrado! Não esqueça de enviar o seu vídeo através do comando "
-                "'%svod' até %s às %s." % (
+                "Seu tempo de %s na semanal de %s foi registrado! "
+                "Não esqueça de enviar o seu vídeo através do comando %svod." % (
                     time.strftime("%H:%M:%S"),
                     entry.weekly.game,
                     ctx.prefix,
-                    entry.weekly.submission_end.strftime("%d/%m/%Y"),
-                    entry.weekly.submission_end.strftime("%H:%M")
                 )
             )
             logger.info(
@@ -199,8 +196,9 @@ class Weekly(commands.Cog, name="Semanais"):
             if weekly is None:
                 raise SeedBotException("Não há uma semanal de %s em andamento." % game)
 
-            if datetime.now() >= weekly.submission_end:
-                raise SeedBotException("Os envios para a semanal de %s foram encerradas." % weekly.game)
+            # Submissions of VOD are not limited for now
+            #if datetime.now() >= weekly.submission_end:
+            #    raise SeedBotException("Os envios para a semanal de %s foram encerradas." % weekly.game)
 
             author_id = ctx.author.id
             entry = self.db.get_player_entry(session, weekly, author_id)
@@ -210,7 +208,7 @@ class Weekly(commands.Cog, name="Semanais"):
             if entry.status == EntryStatus.REGISTERED:
                 raise SeedBotException("Você deve submeter o seu tempo através do comando '%stime' antes de enviar o seu VOD." % ctx.prefix)
             elif entry.status == EntryStatus.DONE:
-                raise SeedBotException("Você já enviou o seu VOD.")
+                raise SeedBotException("Você já enviou o seu VOD para a semanal de %s." % game)
             elif entry.status == EntryStatus.DNF:
                 raise SeedBotException("Você não está mais participando desta semanal.")
 

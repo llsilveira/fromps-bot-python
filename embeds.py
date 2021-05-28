@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 def seed_embed(weekly, instructions):
     game = weekly.game
-    description = instructions['ALL'].format(weekly=weekly) + "\n" + instructions[game]
+    description = instructions['ALL'] + "\n" + instructions[game]
     description += "\n**Seed:** " + weekly.seed_url + "\n\n**Código de Verificação:** "
 
     embed = discord.Embed(
@@ -42,7 +42,7 @@ def list_embed(weeklies):
 
         embed.add_field(name="Código", value="\n".join(codes))
         embed.add_field(name="Jogo", value="\n".join(games))
-        embed.add_field(name="Enviar até", value="\n".join(times))
+        embed.add_field(name="Inscrições até", value="\n".join(times))
     else:
         embed.description = "Nenhuma semanal aberta no momento."
 
