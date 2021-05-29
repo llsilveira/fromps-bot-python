@@ -128,7 +128,7 @@ class Weekly(commands.Cog, name="Semanais"):
         brief="*NO PRIVADO* Enviar o tempo final da seed jogada.",
         ignore_extra=False
     )
-    async def time(self, ctx, tempo: TimeConverter("%H:%M:%S", "H:MM:SS")):
+    async def time(self, ctx, tempo: TimeConverter()):
         time = tempo
 
         with self.db.Session() as session:
@@ -257,10 +257,10 @@ class Weekly(commands.Cog, name="Semanais"):
     async def weeklycreate(
             self,
             ctx,
-            codigo_do_jogo: GameConverter,
+            codigo_do_jogo: GameConverter(),
             url_da_seed,
             codigo_de_verificacao: str,
-            limite_para_envios: DatetimeConverter("%d/%m/%Y-%H:%M", "dd/mm/aaaa-HH:MM")
+            limite_para_envios: DatetimeConverter()
     ):
         game = codigo_do_jogo
         seed_url = url_da_seed
@@ -288,10 +288,10 @@ class Weekly(commands.Cog, name="Semanais"):
     async def weeklytest(
             self,
             ctx,
-            codigo_do_jogo: GameConverter,
+            codigo_do_jogo: GameConverter(),
             url_da_seed,
             codigo_de_verificacao: str,
-            limite_para_envios: DatetimeConverter("%d/%m/%Y-%H:%M", "dd/mm/aaaa-HH:MM")
+            limite_para_envios: DatetimeConverter()
     ):
         game = codigo_do_jogo
         seed_url = url_da_seed
@@ -334,18 +334,18 @@ class Weekly(commands.Cog, name="Semanais"):
     @commands.command(
         name="weeklyupdate",
         aliases=['alterarsemanal'],
-        help="Criar uma nova semanal.\nVocê não poderá criar uma semanal para um jogo que ainda não foi fechado.\nSe o código de verificação fornecido for uma URL, esta será tratada como uma imagem.\nSe algum parâmetro contiver espaços, ele deverá estar \"entre aspas\".\nEste comando deve ser utilizado APENAS NO PRIVADO.",
-        brief="*NO PRIVADO* Criar uma nova semanal.",
+        help="Alterar uma semanal.\nEste comando deve ser utilizado APENAS NO PRIVADO.",
+        brief="*NO PRIVADO* Alterar uma semanal.",
         ignore_extra=False,
         hidden=True,
     )
     async def weeklyupdate(
             self,
             ctx,
-            codigo_do_jogo: GameConverter,
+            codigo_do_jogo: GameConverter(),
             url_da_seed,
             codigo_de_verificacao: str,
-            limite_para_envios: DatetimeConverter("%d/%m/%Y-%H:%M", "dd/mm/aaaa-HH:MM")
+            limite_para_envios: DatetimeConverter()
     ):
         game = codigo_do_jogo
         seed_url = url_da_seed
@@ -364,3 +364,61 @@ class Weekly(commands.Cog, name="Semanais"):
             self.db.update_weekly(session, weekly, seed_url, hash_str, submission_end)
             await ctx.message.reply("Semanal de %s atualizada com sucesso!" % game)
             logger.info("The weekly for %s was updated.", game)
+
+    @commands.command(
+        name="entryupdate",
+        aliases=['alterarentrada'],
+        help="Altera uma entrada da semanal.\nEste comando deve ser utilizado APENAS NO PRIVADO.",
+        brief="*NO PRIVADO* Altera uma entrada da semanal.",
+        ignore_extra=False,
+        hidden=True,
+    )
+    async def weeklyupdate(
+            self,
+            ctx,
+            codigo_do_jogo: GameConverter(),
+            jogador: str,
+            parametro: str,
+            valor: str
+    ):
+        game = codigo_do_jogo
+        player = jogador
+        parameter = str.lower(parametro)
+        value = valor
+        self.monitor_checker.check(ctx.author, game)
+
+        with self.db.Session() as session:
+            weekly = self.db.get_open_weekly(session, game)
+            if weekly is None:
+                raise SeedBotException("Não há uma semanal de %s em andamento." % game)
+
+            entry = self.db.get_player_entry_by_name(session, weekly, jogador)
+            if entry is None:
+                raise SeedBotException("%s não está participando da semanal de %s." % (player, game))
+
+            if entry.status == EntryStatus.DNF:
+                raise SeedBotException("%s não está mais participando da semanal de %s." % (player, game))
+
+            if parameter == 'time':
+                converter = TimeConverter()
+                try:
+                    time = await converter.convert(ctx, value)
+                except:
+                    raise SeedBotException("O tempo fornecido deve estar no formato '%s'." % converter.description_format)
+
+                if entry.status not in [EntryStatus.TIME_SUBMITTED, EntryStatus.DONE]:
+                    raise SeedBotException("%s ainda não enviou seu tempo para a semanal de %s." % (player, game))
+
+                self.db.update_time(session, entry, time)
+
+            elif parameter == 'vod':
+                if entry.status is not EntryStatus.DONE:
+                    raise SeedBotException("%s ainda não enviou seu VOD para a semanal de %s." % (player, game))
+
+                self.db.update_vod(session, entry, value)
+
+            else:
+                raise SeedBotException("Parâmetro desconhecido: %s." % (parametro))
+
+            await ctx.message.reply("Entrada de %s para a semanal de %s alterada com sucesso!" % (player, game))
+            logger.info("The entry %s was updated.", entry)

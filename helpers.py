@@ -95,7 +95,7 @@ class SeedHashHandler:
 
 
 class DatetimeConverter(commands.Converter):
-    def __init__(self, parse_format, description_format):
+    def __init__(self, parse_format = "%d/%m/%Y-%H:%M", description_format = "dd/mm/aaaa-HH:MM"):
         self.parse_format = parse_format
         self.description_format = description_format
         super().__init__()
@@ -104,13 +104,14 @@ class DatetimeConverter(commands.Converter):
         return datetime.strptime(argument, self.parse_format)
 
 
-class TimeConverter(DatetimeConverter):
-    def __init__(self, parse_format, description_format):
-        super().__init__(parse_format, description_format)
+class TimeConverter(commands.Converter):
+    def __init__(self, parse_format = "%H:%M:%S", description_format = "H:MM:SS"):
+        self.parse_format = parse_format
+        self.description_format = description_format
+        super().__init__()
 
     async def convert(self, ctx, argument):
-        var = await super().convert(ctx, argument)
-        return var.time()
+        return datetime.strptime(argument, self.parse_format).time()
 
 
 class GameConverter(commands.Converter):

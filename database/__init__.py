@@ -97,6 +97,15 @@ class Database:
     def get_player_entry(self, session, weekly, discord_id):
         return session.get(PlayerEntry, (weekly.id, discord_id))
 
+    def get_player_entry_by_name(self, session, weekly, discord_name):
+        entries = session.execute(
+            select(PlayerEntry).where(PlayerEntry.weekly == weekly, PlayerEntry.discord_name == discord_name)
+        ).scalars().all()
+
+        if len(entries) == 0:
+            return None
+        return entries[0]
+
     def get_registered_entry(self, session, discord_id):
         registered = session.execute(
             select(PlayerEntry).where(PlayerEntry.discord_id == discord_id,
@@ -163,6 +172,24 @@ class Database:
         entry.vod_submitted_at = datetime.now()
         session.commit()
         logger.debug("Entry changed: %s", entry)
+
+    def update_time(self, session, entry, new_time):
+        if entry.status not in [EntryStatus.TIME_SUBMITTED, EntryStatus.DONE]:
+            raise ConsistencyError(
+                "Attempt to alter a time for a player that did not have submitted their time."
+            )
+        entry.finish_time = new_time
+        session.commit()
+        logger.debug("Entry time changed: %s", entry)
+
+    def update_vod(self, session, entry, new_vod):
+        if entry.status is not EntryStatus.DONE:
+            raise ConsistencyError(
+                "Attempt to alter a VOD for a player that did not have submitted their VOD."
+            )
+        entry.vod_url = new_vod
+        session.commit()
+        logger.debug("Entry VOD changed: %s", entry)
 
     def _generate_schema(self):
         Base.metadata.drop_all(self.engine)
