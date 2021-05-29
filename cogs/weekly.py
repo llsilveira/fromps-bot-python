@@ -11,6 +11,25 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+DATE_FORMAT = "%d/%m/%Y"
+TIME_FORMAT = "%H:%M:%S"
+DATETIME_FORMAT = "%d/%m/%Y-%H:%M"
+
+def timedelta_to_str(delta):
+    total = int(delta.total_seconds())
+    seconds = total % 60
+    total //= 60
+    minutes = total % 60
+    total //= 60
+    hours = total % 24
+    days = total // 24
+
+    value = ""
+    if days > 0:
+        value += "{:d}d ".format(days)
+    value += "{:d}:{:02d}:{:02d}".format(hours, minutes, seconds)
+    return value
+
 class Weekly(commands.Cog, name="Semanais"):
     def __init__(self, bot, config, database):
         self.bot = bot
@@ -222,7 +241,7 @@ class Weekly(commands.Cog, name="Semanais"):
         hidden=True,
         ignore_extra=False
     )
-    async def entries(self, ctx, codigo_do_jogo: GameConverter()):
+    async def entries(self, ctx, codigo_do_jogo: GameConverter(), verbose: bool = False):
         game = codigo_do_jogo
         self.monitor_checker.check(ctx.author, game)
 
@@ -240,6 +259,19 @@ class Weekly(commands.Cog, name="Semanais"):
                     reply += "Tempo: %s\nPrint: <%s>\n" % (e.finish_time, e.print_url)
                 if e.status == EntryStatus.DONE:
                     reply += "VOD: <%s>\n" % e.vod_url
+
+                if verbose:
+                    formatstr = DATE_FORMAT + " " + TIME_FORMAT
+                    reply += "Registro: %s\n" % e.registered_at.strftime(formatstr)
+                    if e.status in [EntryStatus.TIME_SUBMITTED, EntryStatus.DONE]:
+                        reply += "Envio do tempo: %s (Delta = %s)\n" % (
+                            e.time_submitted_at.strftime(formatstr),
+                            timedelta_to_str(e.time_submitted_at - e.registered_at))
+                        if e.status is EntryStatus.DONE:
+                            reply += "Envio do VOD: %s (Delta = %s)\n" % (
+                                e.vod_submitted_at.strftime(formatstr),
+                                timedelta_to_str(e.vod_submitted_at- e.registered_at))
+
                 reply += "\n"
             if len(reply) > 0:
                 await ctx.message.reply(reply)

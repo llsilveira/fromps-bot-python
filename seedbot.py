@@ -162,6 +162,9 @@ async def on_command_error(ctx, error):
     elif isinstance(error, commands.errors.CommandNotFound):
         await ctx.reply("Comando não encontrado.")
 
+    elif isinstance(error, commands.errors.BadBoolArgument):
+        await ctx.reply("%s não é um valor reconhecido." % error.argument)
+
     else:
         await handle_unknown_exception()
 
