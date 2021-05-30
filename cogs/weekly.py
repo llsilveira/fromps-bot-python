@@ -252,29 +252,39 @@ class Weekly(commands.Cog, name="Semanais"):
 
             entries = sorted(weekly.entries, key=lambda e: e.finish_time if e.finish_time is not None else time(23, 59))
 
-            reply = ""
-            for e in entries:
-                reply += "Player: %s\nStatus: %s\n" % (e.discord_name, e.status.name)
-                if e.status in [EntryStatus.TIME_SUBMITTED, EntryStatus.DONE]:
-                    reply += "Tempo: %s\nPrint: <%s>\n" % (e.finish_time, e.print_url)
-                if e.status == EntryStatus.DONE:
-                    reply += "VOD: <%s>\n" % e.vod_url
-
-                if verbose:
-                    formatstr = DATE_FORMAT + " " + TIME_FORMAT
-                    reply += "Registro: %s\n" % e.registered_at.strftime(formatstr)
+            if len(entries) > 0:
+                reply = ""
+                for e in entries:
+                    reply_entry = ""
+                    reply_entry += "Player: %s\nStatus: %s\n" % (e.discord_name, e.status.name)
                     if e.status in [EntryStatus.TIME_SUBMITTED, EntryStatus.DONE]:
-                        reply += "Envio do tempo: %s (Delta = %s)\n" % (
-                            e.time_submitted_at.strftime(formatstr),
-                            timedelta_to_str(e.time_submitted_at - e.registered_at))
-                        if e.status is EntryStatus.DONE:
-                            reply += "Envio do VOD: %s (Delta = %s)\n" % (
-                                e.vod_submitted_at.strftime(formatstr),
-                                timedelta_to_str(e.vod_submitted_at- e.registered_at))
+                        reply_entry += "Tempo: %s\nPrint: <%s>\n" % (e.finish_time, e.print_url)
+                    if e.status == EntryStatus.DONE:
+                        reply_entry += "VOD: <%s>\n" % e.vod_url
 
-                reply += "\n"
-            if len(reply) > 0:
-                await ctx.message.reply(reply)
+                    if verbose:
+                        formatstr = DATE_FORMAT + " " + TIME_FORMAT
+                        reply_entry += "Registro: %s\n" % e.registered_at.strftime(formatstr)
+                        if e.status in [EntryStatus.TIME_SUBMITTED, EntryStatus.DONE]:
+                            reply_entry += "Envio do tempo: %s (Delta = %s)\n" % (
+                                e.time_submitted_at.strftime(formatstr),
+                                timedelta_to_str(e.time_submitted_at - e.registered_at))
+                            if e.status is EntryStatus.DONE:
+                                reply_entry += "Envio do VOD: %s (Delta = %s)\n" % (
+                                    e.vod_submitted_at.strftime(formatstr),
+                                    timedelta_to_str(e.vod_submitted_at- e.registered_at))
+
+                    reply_entry += "\n"
+
+                    if len(reply) + len(reply_entry) <= 1800:
+                        reply += reply_entry
+                    else:
+                        await ctx.message.reply(reply)
+                        reply = reply_entry
+
+                if len(reply) > 0:
+                    await ctx.message.reply(reply)
+
             else:
                 await ctx.message.reply("Nenhuma entrada resgistrada.")
 
