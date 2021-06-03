@@ -1,9 +1,11 @@
+from discord import File
 from discord.ext import commands
 from datetime import datetime, time
+import io
 
 from database import model
 from datatypes import Games, EntryStatus, WeeklyStatus
-from helpers import get_discord_name, GameConverter, TimeConverter, DatetimeConverter, MonitorChecker, SeedHashHandler
+from helpers import get_discord_name, GameConverter, TimeConverter, DatetimeConverter, MonitorChecker, ImageHashGenerator
 from exceptions import SeedBotException
 import embeds
 
@@ -36,7 +38,7 @@ class Weekly(commands.Cog, name="Semanais"):
         self.config = config
         self.db = database
         self.monitor_checker = MonitorChecker(config)
-        self.hash_handler = SeedHashHandler(self.bot)
+        self.img_hash_generator = ImageHashGenerator()
 
         # Load instructions file
         #with open(self.config['instructions_file'], 'r') as instructions_file:
@@ -52,44 +54,43 @@ class Weekly(commands.Cog, name="Semanais"):
 
         self.instructions = {
             'ALL': """\
-                Obrigado por participar desta semanal!
+Obrigado por participar desta semanal!
 
-                Ao jogar esta seed, grave a sua gameplay localmente, ou faça uma stream não listada no youtube sem\
-                divulgá-la a ninguém. Sua gravação deve conter, a todo momento, o timer e a imagem limpa do jogo. O\
-                áudio também deve estar limpo durante a gameplay (sem voz, músicas, etc). **Deixe um intervalo de pelo\
-                menos 1 minuto entre o início da gravação e o início da gameplay e grave toda a sequência de créditos\
-                após o fim do jogo**.
-                
-                Ao terminar a seed, envie um print contendo a tela final do jogo e o seu timer. O tempo enviado\
-                será o IRT, portanto não pause seu timer durante o jogo (caso aconteça um pause não intencional,\
-                calcule o tempo real utilizando a sua gravação e avise o monitor da semanal que o seu tempo foi\
-                recalculado). A explicação completa dos procedimentos para envio do seu tempo e da sua gravação\
-                encontra-se na mensagem pinada no canal **#semanais-seed**.
+Ao jogar esta seed, grave a sua gameplay localmente, ou faça uma stream não listada no youtube sem divulgá-la a \
+ninguém. Sua gravação deve conter, a todo momento, o timer e a imagem limpa do jogo (não coloque nada sobre o jogo, \
+nem mesmo o timer). O áudio da gravação também deve estar limpo, contendo apenas o som do próprio jogo. **Deixe um \
+intervalo de pelo menos 1 minuto entre o início da gravação e o início da gameplay e grave toda a sequência de \
+créditos após o fim do jogo**.
 
-                GLHF!
-                --------
-            """,
+Ao terminar a seed, envie um print contendo a tela final do jogo e o seu timer. O tempo enviado será o IRT, portanto \
+não pause seu timer durante o jogo (caso aconteça um pause não intencional, calcule o tempo real utilizando a sua \
+gravação e avise o monitor da semanal que o seu tempo foi recalculado). A explicação completa dos procedimentos para \
+envio do seu tempo e da sua gravação encontra-se na mensagem pinada no canal **#semanais-seed**.
+
+GLHF!
+--------
+""",
 
             Games.OOTR: """\
-                **Settings:** ZRBR Blitz (https://pastebin.com/3N0mnBrB)
+**Settings:** ZRBR Blitz (https://pastebin.com/3N0mnBrB)
 
-                **Instruções para gerar a ROM:** Salve o arquivo .zpf abaixo e acesse \
-                <https://ootrandomizer.com/generator>. Na aba 'ROM Options', selecione a opção 'Generate From Patch \
-                File'. Envie o arquivo .zpf que você baixou e clique em 'PATCH ROM!'
-                """,
+**Instruções para gerar a ROM:** Salve o arquivo .zpf abaixo e acesse <https://ootrandomizer.com/generator>. Na aba \
+'ROM Options', selecione a opção 'Generate From Patch File'. Envie o arquivo .zpf que você baixou e clique em 'PATCH \
+ROM!'
+""",
 
             Games.ALTTPR: """\
-                **Preset:** Openboots
+**Preset:** Openboots
 
-                **Quickswap:** Habilitado
-                """,
+**Quickswap:** Habilitado
+""",
             Games.MMR: """\
-                **Settings:** ZRBR (https://pastebin.com/ArbK7SXG)
-            """,
+**Settings:** ZRBR (https://pastebin.com/ArbK7SXG)
+""",
 
             Games.PKMN_CRYSTAL: """\
-                **Settings e Regras:** https://pastebin.com/m1prCWKZ
-            """,
+**Settings e Regras:** https://pastebin.com/m1prCWKZ
+""",
         }
 
     @commands.command(
@@ -272,7 +273,7 @@ class Weekly(commands.Cog, name="Semanais"):
                             if e.status is EntryStatus.DONE:
                                 reply_entry += "Envio do VOD: %s (Delta = %s)\n" % (
                                     e.vod_submitted_at.strftime(formatstr),
-                                    timedelta_to_str(e.vod_submitted_at- e.registered_at))
+                                    timedelta_to_str(e.vod_submitted_at - e.registered_at))
 
                     reply_entry += "\n"
 
@@ -306,7 +307,7 @@ class Weekly(commands.Cog, name="Semanais"):
     ):
         game = codigo_do_jogo
         seed_url = url_da_seed
-        hash_str = self.hash_handler.get_hash(game, codigo_de_verificacao)
+        hash_str = codigo_de_verificacao
         submission_end = limite_para_envios
         self.monitor_checker.check(ctx.author, game)
 
@@ -314,6 +315,9 @@ class Weekly(commands.Cog, name="Semanais"):
             weekly = self.db.get_open_weekly(session, game)
             if weekly is not None:
                 raise SeedBotException("Há uma semanal aberta para %s. Feche-a primeiro antes de criar uma nova." % game)
+
+            if game in [Games.ALTTPR, Games.OOTR]:
+                hash_str = await self.genhash(ctx, game, hash_str)
 
             self.db.create_weekly(session, game, seed_url, hash_str, submission_end)
             await ctx.message.reply("Semanal de %s criada com sucesso!" % game)
@@ -337,9 +341,12 @@ class Weekly(commands.Cog, name="Semanais"):
     ):
         game = codigo_do_jogo
         seed_url = url_da_seed
-        hash_str = self.hash_handler.get_hash(game, codigo_de_verificacao)
+        hash_str = codigo_de_verificacao
         submission_end = limite_para_envios
         self.monitor_checker.check(ctx.author, game)
+
+        if game in [Games.ALTTPR, Games.OOTR]:
+            hash_str = await self.genhash(ctx, game, hash_str)
 
         weekly = model.Weekly(
             game=game,
@@ -391,7 +398,7 @@ class Weekly(commands.Cog, name="Semanais"):
     ):
         game = codigo_do_jogo
         seed_url = url_da_seed
-        hash_str = self.hash_handler.get_hash(game, codigo_de_verificacao)
+        hash_str = codigo_de_verificacao
         submission_end = limite_para_envios
         self.monitor_checker.check(ctx.author, game)
 
@@ -402,6 +409,9 @@ class Weekly(commands.Cog, name="Semanais"):
 
             if len(weekly.entries) > 0 and weekly.seed_url != seed_url:
                 raise SeedBotException("Existem entradas registradas para esta semanal, portanto não é possível alterar a URL da seed.")
+
+            if game in [Games.ALTTPR, Games.OOTR]:
+                hash_str = await self.genhash(ctx, game, hash_str)
 
             self.db.update_weekly(session, weekly, seed_url, hash_str, submission_end)
             await ctx.message.reply("Semanal de %s atualizada com sucesso!" % game)
@@ -415,7 +425,7 @@ class Weekly(commands.Cog, name="Semanais"):
         ignore_extra=False,
         hidden=True,
     )
-    async def weeklyupdate(
+    async def entryupdate(
             self,
             ctx,
             codigo_do_jogo: GameConverter(),
@@ -464,3 +474,15 @@ class Weekly(commands.Cog, name="Semanais"):
 
             await ctx.message.reply("Entrada de %s para a semanal de %s alterada com sucesso!" % (player, game))
             logger.info("The entry %s was updated.", entry)
+
+    async def genhash(self, ctx, game, hash_str):
+        try:
+            img_bytes = self.img_hash_generator.generate(game, hash_str)
+        except ValueError as e:
+            raise SeedBotException(str(e))
+
+        with io.BytesIO(img_bytes) as img:
+            message = await ctx.reply("", file=File(img, "hash.png"))
+            if len(message.attachments) != 1:
+                raise SeedBotException("Erro ao enviar a imagem pelo Discord.")
+            return message.attachments[0].url

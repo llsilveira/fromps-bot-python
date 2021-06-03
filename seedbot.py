@@ -47,7 +47,7 @@ bot = commands.Bot(
 filter_command = re.compile(r'^' + re.escape(cfg['bot']['command_prefix']) + r'(.*)$')
 filter_signup = re.compile(r'^' + re.escape(cfg['bot']['command_prefix']) + r'(ajuda|semanais|weeklies|semente|seed).*$')
 filter_dm = re.compile(
-    r'^' + re.escape(cfg['bot']['command_prefix']) + r'(ajuda|semanais|weeklies|tempo|time|desistir|forfeit|video|gravacao|vod|entradas|inscricoes|entries|criarsemanal|weeklycreate|testarsemanal|weeklytest|encerrarsemanal|weeklyclose|alterarsemanal|weeklyupdate).*$'
+    r'^' + re.escape(cfg['bot']['command_prefix']) + r'(ajuda|semanais|weeklies|tempo|time|desistir|forfeit|video|gravacao|vod|entradas|inscricoes|entries|criarsemanal|weeklycreate|testarsemanal|weeklytest|encerrarsemanal|weeklyclose|alterarsemanal|weeklyupdate|alterarentrada|entryupdate).*$'
 )
 signup_channel = cfg['bot']['signup_channel']
 testing = cfg['general'].get('testing', False)
@@ -160,7 +160,7 @@ async def on_command_error(ctx, error):
             await handle_unknown_exception()
 
     elif isinstance(error, commands.errors.CommandNotFound):
-        await ctx.reply("Comando não encontrado.")
+        await ctx.reply("Comando desconhecido.")
 
     elif isinstance(error, commands.errors.BadBoolArgument):
         await ctx.reply("%s não é um valor reconhecido." % error.argument)
