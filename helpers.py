@@ -28,19 +28,12 @@ class ImageHashGenerator:
         if count != 5:
             raise ValueError("O código HASH informado deve conter 5 itens.")
 
-        if game is Games.OOTR:
-            filename = "oot_icons.png"
-        elif game is Games.ALTTPR:
-            filename = "alttp_icons.png"
-        else:
-            raise ValueError("Não é possível criar uma imagem de verificação para %s." % game)
-
         width = self.hash_img_size[0]
         height = self.hash_img_size[1]
         space = self.hash_space
 
         with Image.new("RGBA", (count*width + (count-1)*space, height)) as img, \
-                Image.open(get_resource(filename), "r") as source_img:
+                Image.open(get_resource("hash_icons.png"), "r") as source_img:
             start = 0
             for item in items:
                 position = self._get_position(game, item)
