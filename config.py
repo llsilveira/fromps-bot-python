@@ -24,7 +24,7 @@ class LogFilter(logging.Filter):
         self.path = path
 
     def filter(self, record):
-        return record.pathname.find(self.path) == 0
+        return os.path.abspath(record.pathname).find(self.path) == 0
 
 
 def load_conf(config_file=CONFIG_FILE):
@@ -46,8 +46,8 @@ def load_conf(config_file=CONFIG_FILE):
         handler = logging.handlers.RotatingFileHandler(
             cfg['logfile'], maxBytes=int(cfg['maxbytes']), backupCount=int(cfg['count'])
         )
+        handler.addFilter(LogFilter(os.path.dirname(os.path.abspath(__file__))))
     handler.setFormatter(formatter)
-    handler.addFilter(LogFilter(os.path.dirname(__file__)))
 
     logger = logging.getLogger()
     logger.setLevel(numeric_level)
