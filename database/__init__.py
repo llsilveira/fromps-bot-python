@@ -6,9 +6,6 @@ from datetime import datetime
 from datatypes import EntryStatus, WeeklyStatus
 from database.model import PlayerEntry, Weekly, Base
 
-import logging
-logger = logging.getLogger(__name__)
-
 
 class ConsistencyError(Exception):
     pass
@@ -75,7 +72,6 @@ class Database:
         )
         session.add(weekly)
         session.commit()
-        logger.debug("A weekly was created: %s", weekly)
         return weekly
 
     def update_weekly(self, session, weekly, seed_url, seed_hash, submission_end):
@@ -83,7 +79,6 @@ class Database:
         weekly.seed_hash = seed_hash
         weekly.submission_end = submission_end
         session.commit()
-        logger.debug("A weekly was updated: %s", weekly)
         return weekly
 
     def close_weekly(self, session, weekly):
@@ -92,7 +87,6 @@ class Database:
                 entry.status = EntryStatus.DNF
         weekly.status = WeeklyStatus.CLOSED
         session.commit()
-        logger.debug("A weekly was closed: %s", weekly)
 
     def get_player_entry(self, session, weekly, discord_id):
         return session.get(PlayerEntry, (weekly.id, discord_id))
@@ -137,7 +131,6 @@ class Database:
         )
         session.add(entry)
         session.commit()
-        logger.debug("A new entry was created: %s", entry)
         return entry
 
     def forfeit_player(self, session, weekly, discord_id):
@@ -148,7 +141,6 @@ class Database:
             )
         entry.status = EntryStatus.DNF
         session.commit()
-        logger.debug("Entry changed: %s", entry)
 
     def submit_time(self, session, entry, finish_time, print_url):
         if entry.status != EntryStatus.REGISTERED:
@@ -160,7 +152,6 @@ class Database:
         entry.time_submitted_at = datetime.now()
         entry.status = EntryStatus.TIME_SUBMITTED
         session.commit()
-        logger.debug("Entry changed: %s", entry)
 
     def submit_vod(self, session, entry, vod_url):
         if entry.status is not EntryStatus.TIME_SUBMITTED:
@@ -171,7 +162,6 @@ class Database:
         entry.vod_url = vod_url
         entry.vod_submitted_at = datetime.now()
         session.commit()
-        logger.debug("Entry changed: %s", entry)
 
     def update_time(self, session, entry, new_time):
         if entry.status not in [EntryStatus.TIME_SUBMITTED, EntryStatus.DONE]:
@@ -180,7 +170,6 @@ class Database:
             )
         entry.finish_time = new_time
         session.commit()
-        logger.debug("Entry time changed: %s", entry)
 
     def update_vod(self, session, entry, new_vod):
         if entry.status is not EntryStatus.DONE:
@@ -189,7 +178,6 @@ class Database:
             )
         entry.vod_url = new_vod
         session.commit()
-        logger.debug("Entry VOD changed: %s", entry)
 
     def _generate_schema(self):
         Base.metadata.drop_all(self.engine)

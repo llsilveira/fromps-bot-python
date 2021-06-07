@@ -18,6 +18,15 @@ class AppConfigParser(configparser.ConfigParser):
         return ast.literal_eval(super().get(section, option, raw=raw, vars=vars, fallback=fallback))
 
 
+class LogFilter(logging.Filter):
+    def __init__(self, path):
+        super(LogFilter, self).__init__()
+        self.path = path
+
+    def filter(self, record):
+        return record.pathname.find(self.path) == 0
+
+
 def load_conf(config_file=CONFIG_FILE):
     parser = AppConfigParser(interpolation=configparser.ExtendedInterpolation())
     parser.read_dict({'env': {'instance_path': '"' + INSTANCE_PATH + '"'}})
@@ -38,6 +47,7 @@ def load_conf(config_file=CONFIG_FILE):
             cfg['logfile'], maxBytes=int(cfg['maxbytes']), backupCount=int(cfg['count'])
         )
     handler.setFormatter(formatter)
+    handler.addFilter(LogFilter(os.path.dirname(__file__)))
 
     logger = logging.getLogger()
     logger.setLevel(numeric_level)

@@ -3,9 +3,6 @@ import re
 from datetime import datetime
 from datatypes import Games
 
-import logging
-logger = logging.getLogger(__name__)
-
 
 def seed_embed(weekly, instructions):
     game = weekly.game

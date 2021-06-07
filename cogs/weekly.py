@@ -9,6 +9,7 @@ from helpers import get_discord_name, GameConverter, TimeConverter, DatetimeConv
 from exceptions import SeedBotException
 import embeds
 
+import functools
 import logging
 logger = logging.getLogger(__name__)
 
@@ -31,6 +32,24 @@ def timedelta_to_str(delta):
         value += "{:d}d ".format(days)
     value += "{:d}:{:02d}:{:02d}".format(hours, minutes, seconds)
     return value
+
+
+def log(f):
+    @functools.wraps(f)
+    async def log_wrapper(*args, **kwargs):
+        ctx = args[1]
+        message = get_discord_name(ctx.author) + " sent: '" + ctx.message.content + "'."
+        try:
+            result = await f(*args, **kwargs)
+        except Exception as e:
+            message += " Command raised an error as result: " + type(e).__name__ + "('" + str(e) + "')."
+            raise
+        else:
+            message += " Command returned without errors."
+        finally:
+            logger.info(message)
+        return result
+    return log_wrapper
 
 class Weekly(commands.Cog, name="Semanais"):
     def __init__(self, bot, config, database):
@@ -111,6 +130,7 @@ ROM!'
         brief='Solicitar a seed da semanal de sua escolha.',
         ignore_extra=False
     )
+    @log
     async def seed(self, ctx, codigo_do_jogo: GameConverter()):
         game = codigo_do_jogo
 
@@ -139,7 +159,6 @@ ROM!'
 
             embed = embeds.seed_embed(weekly, self.instructions)
             await ctx.author.send(embed=embed)
-            logger.info("The seed for %s was sent to %s", game, get_discord_name(author))
 
     @commands.command(
         name="time",
@@ -148,6 +167,7 @@ ROM!'
         brief="*NO PRIVADO* Enviar o tempo final da seed jogada.",
         ignore_extra=False
     )
+    @log
     async def time(self, ctx, tempo: TimeConverter()):
         time = tempo
 
@@ -175,8 +195,6 @@ ROM!'
                     ctx.prefix,
                 )
             )
-            logger.info(
-                "The time and print for %s was received from %s.", entry.weekly.game, get_discord_name(ctx.author))
 
     @commands.command(
         name="forfeit",
@@ -184,6 +202,7 @@ ROM!'
         help="Desistir da participação na semanal atual.\nEste comando deve ser utilizado APENAS NO PRIVADO.",
         brief="*NO PRIVADO* Desistir da participação na semanal atual."
     )
+    @log
     async def forfeit(self, ctx, *, ok: str = None):
         with self.db.Session() as session:
             author_id = ctx.author.id
@@ -198,7 +217,6 @@ ROM!'
 
             self.db.forfeit_player(session, entry.weekly, author_id)
             await ctx.message.reply("Você não está mais participando da semanal de %s." % entry.weekly.game)
-            logger.info("%s has forfeited from %s.", get_discord_name(ctx.author), entry.weekly.game)
 
     @commands.command(
         name="vod",
@@ -207,6 +225,7 @@ ROM!'
         brief="*NO PRIVADO* Enviar o VOD da seed jogada",
         ignore_extra=False
     )
+    @log
     async def vod(self, ctx, codigo_do_jogo: GameConverter(), url_do_vod: str):
         game = codigo_do_jogo
         vod_url = url_do_vod
@@ -234,7 +253,6 @@ ROM!'
 
             self.db.submit_vod(session, entry, vod_url)
             await ctx.message.reply("VOD recebido com sucesso! Agradecemos a sua participação!")
-            logger.info("The VOD for %s was received from %s.", entry.weekly.game, get_discord_name(ctx.author))
 
     @commands.command(
         name="entries",
@@ -242,6 +260,7 @@ ROM!'
         hidden=True,
         ignore_extra=False
     )
+    @log
     async def entries(self, ctx, codigo_do_jogo: GameConverter(), verbose: bool = False):
         game = codigo_do_jogo
         self.monitor_checker.check(ctx.author, game)
@@ -297,6 +316,7 @@ ROM!'
         ignore_extra=False,
         hidden=True,
     )
+    @log
     async def weeklycreate(
             self,
             ctx,
@@ -321,7 +341,6 @@ ROM!'
 
             self.db.create_weekly(session, game, seed_url, hash_str, submission_end)
             await ctx.message.reply("Semanal de %s criada com sucesso!" % game)
-            logger.info("A new weekly for %s was created.", game)
 
     @commands.command(
         name="weeklytest",
@@ -367,6 +386,7 @@ ROM!'
         ignore_extra=False,
         hidden=True,
     )
+    @log
     async def weeklyclose(self, ctx, codigo_do_jogo: GameConverter()):
         game = codigo_do_jogo
         self.monitor_checker.check(ctx.author, game)
@@ -378,7 +398,6 @@ ROM!'
 
             self.db.close_weekly(session, weekly)
             await ctx.message.reply("Semanal de %s fechada com sucesso!" % game)
-            logger.info("The weekly for %s was closed.", game)
 
     @commands.command(
         name="weeklyupdate",
@@ -388,6 +407,7 @@ ROM!'
         ignore_extra=False,
         hidden=True,
     )
+    @log
     async def weeklyupdate(
             self,
             ctx,
@@ -415,7 +435,6 @@ ROM!'
 
             self.db.update_weekly(session, weekly, seed_url, hash_str, submission_end)
             await ctx.message.reply("Semanal de %s atualizada com sucesso!" % game)
-            logger.info("The weekly for %s was updated.", game)
 
     @commands.command(
         name="entryupdate",
@@ -425,6 +444,7 @@ ROM!'
         ignore_extra=False,
         hidden=True,
     )
+    @log
     async def entryupdate(
             self,
             ctx,
@@ -473,7 +493,6 @@ ROM!'
                 raise SeedBotException("Parâmetro desconhecido: %s." % (parametro))
 
             await ctx.message.reply("Entrada de %s para a semanal de %s alterada com sucesso!" % (player, game))
-            logger.info("The entry %s was updated.", entry)
 
     async def genhash(self, ctx, game, hash_str):
         try:
