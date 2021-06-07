@@ -35,6 +35,7 @@ class PlayerEntry(Base):
     finish_time = Column(Time)
     print_url = Column(String)
     vod_url = Column(String)
+    comment = Column(String)
     registered_at = Column(DateTime, nullable=False)
     time_submitted_at = Column(DateTime)
     vod_submitted_at = Column(DateTime)

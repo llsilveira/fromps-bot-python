@@ -255,6 +255,35 @@ ROM!'
             await ctx.message.reply("VOD recebido com sucesso! Agradecemos a sua participação!")
 
     @commands.command(
+        name="comment",
+        aliases=['comentario'],
+        help="Enviar um comentário de até 250 caracteres sobre a participação na semanal.\nEste comando deve ser utilizado APENAS NO PRIVADO.",
+        brief="*NO PRIVADO* Enviar um comentário de até 250 caracteres sobre a participação na semanal."
+    )
+    async def comment(self, ctx, codigo_do_jogo: GameConverter(), *, comentario: str = None):
+        game = codigo_do_jogo
+        comment = comentario
+
+        with self.db.Session() as session:
+            weekly = self.db.get_open_weekly(session, game)
+            if weekly is None:
+                raise SeedBotException("Não há uma semanal de %s em andamento." % game)
+
+            author_id = ctx.author.id
+            entry = self.db.get_player_entry(session, weekly, author_id)
+            if entry is None:
+                raise SeedBotException("Você ainda não solicitou a seed da semanal de %s." % game)
+
+            if comment is not None and len(comment) > 250:
+                raise SeedBotException("Seu comentário deve ter no máximo 250 caracteres.")
+
+            self.db.submit_comment(session, entry, comment)
+            if comment is None:
+                await ctx.message.reply("Comentário removido com sucesso!")
+            else:
+                await ctx.message.reply("Comentário recebido com sucesso!")
+
+    @commands.command(
         name="entries",
         aliases=['entradas', 'inscricoes'],
         hidden=True,
@@ -281,6 +310,8 @@ ROM!'
                         reply_entry += "Tempo: %s\nPrint: <%s>\n" % (e.finish_time, e.print_url)
                     if e.status == EntryStatus.DONE:
                         reply_entry += "VOD: <%s>\n" % e.vod_url
+                    if e.comment is not None:
+                        reply_entry += "Comentário: %s\n" % e.comment
 
                     if verbose:
                         formatstr = DATE_FORMAT + " " + TIME_FORMAT

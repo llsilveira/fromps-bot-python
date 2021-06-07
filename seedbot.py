@@ -47,7 +47,7 @@ bot = commands.Bot(
 filter_command = re.compile(r'^' + re.escape(cfg['bot']['command_prefix']) + r'(.*)$')
 filter_signup = re.compile(r'^' + re.escape(cfg['bot']['command_prefix']) + r'(ajuda|semanais|weeklies|semente|seed).*$')
 filter_dm = re.compile(
-    r'^' + re.escape(cfg['bot']['command_prefix']) + r'(ajuda|semanais|weeklies|tempo|time|desistir|forfeit|video|gravacao|vod|entradas|inscricoes|entries|criarsemanal|weeklycreate|testarsemanal|weeklytest|encerrarsemanal|weeklyclose|alterarsemanal|weeklyupdate|alterarentrada|entryupdate).*$'
+    r'^' + re.escape(cfg['bot']['command_prefix']) + r'(ajuda|semanais|weeklies|tempo|time|desistir|forfeit|video|gravacao|vod|entradas|inscricoes|entries|criarsemanal|weeklycreate|testarsemanal|weeklytest|encerrarsemanal|weeklyclose|alterarsemanal|weeklyupdate|alterarentrada|entryupdate|comentario|comment).*$'
 )
 signup_channel = cfg['bot']['signup_channel']
 testing = cfg['general'].get('testing', False)

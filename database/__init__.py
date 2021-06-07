@@ -163,6 +163,10 @@ class Database:
         entry.vod_submitted_at = datetime.now()
         session.commit()
 
+    def submit_comment(self, session, entry, comment):
+        entry.comment = comment
+        session.commit()
+
     def update_time(self, session, entry, new_time):
         if entry.status not in [EntryStatus.TIME_SUBMITTED, EntryStatus.DONE]:
             raise ConsistencyError(
