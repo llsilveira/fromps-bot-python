@@ -1,6 +1,6 @@
 from discord import File
 from discord.ext import commands
-from datetime import datetime, time
+from datetime import datetime, time, date
 import io
 
 from database import model
@@ -20,6 +20,13 @@ DATETIME_FORMAT = "%d/%m/%Y-%H:%M"
 
 def timedelta_to_str(delta):
     total = int(delta.total_seconds())
+
+    if total < 0:
+        total = -total
+        value = '-'
+    else:
+        value = '+'
+
     seconds = total % 60
     total //= 60
     minutes = total % 60
@@ -27,11 +34,14 @@ def timedelta_to_str(delta):
     hours = total % 24
     days = total // 24
 
-    value = ""
     if days > 0:
         value += "{:d}d ".format(days)
     value += "{:d}:{:02d}:{:02d}".format(hours, minutes, seconds)
     return value
+
+
+def time_to_timedelta(time):
+    return datetime.combine(date.min, time) - datetime.min
 
 
 def log(f):
@@ -50,6 +60,7 @@ def log(f):
             logger.info(message)
         return result
     return log_wrapper
+
 
 class Weekly(commands.Cog, name="Semanais"):
     def __init__(self, bot, config, database):
@@ -290,8 +301,9 @@ ROM!'
         ignore_extra=False
     )
     @log
-    async def entries(self, ctx, codigo_do_jogo: GameConverter(), verbose: bool = False):
+    async def entries(self, ctx, codigo_do_jogo: GameConverter(), verbose: str = ""):
         game = codigo_do_jogo
+        verbose = str.lower(verbose) in ['t', 'true', 'y', 'yes', 's', 'sim', '1', 'on', 'v', '-v', 'verbose', '--verbose']
         self.monitor_checker.check(ctx.author, game)
 
         with self.db.Session() as session:
@@ -304,26 +316,27 @@ ROM!'
             if len(entries) > 0:
                 reply = ""
                 for e in entries:
-                    reply_entry = ""
-                    reply_entry += "Player: %s\nStatus: %s\n" % (e.discord_name, e.status.name)
+                    reply_entry = "Player: %s\nStatus: %s\n" % (e.discord_name, e.status.name)
                     if e.status in [EntryStatus.TIME_SUBMITTED, EntryStatus.DONE]:
-                        reply_entry += "Tempo: %s\nPrint: <%s>\n" % (e.finish_time, e.print_url)
+                        finish_time = str(e.finish_time)
+                        if not verbose:
+                            finish_time = "||" + finish_time + "||"
+                        reply_entry += "Tempo: %s\nPrint: <%s>\n" % (finish_time, e.print_url)
                     if e.status == EntryStatus.DONE:
                         reply_entry += "VOD: <%s>\n" % e.vod_url
                     if e.comment is not None:
-                        reply_entry += "Comentário: %s\n" % e.comment
+                        comment = e.comment if verbose else "||" + e.comment + "||"
+                        reply_entry += "Comentário: %s\n" % comment
 
                     if verbose:
                         formatstr = DATE_FORMAT + " " + TIME_FORMAT
                         reply_entry += "Registro: %s\n" % e.registered_at.strftime(formatstr)
                         if e.status in [EntryStatus.TIME_SUBMITTED, EntryStatus.DONE]:
-                            reply_entry += "Envio do tempo: %s (Delta = %s)\n" % (
+                            reply_entry += "Envio do tempo: %s (%s)\n" % (
                                 e.time_submitted_at.strftime(formatstr),
-                                timedelta_to_str(e.time_submitted_at - e.registered_at))
+                                timedelta_to_str(e.time_submitted_at - e.registered_at - time_to_timedelta(e.finish_time)))
                             if e.status is EntryStatus.DONE:
-                                reply_entry += "Envio do VOD: %s (Delta = %s)\n" % (
-                                    e.vod_submitted_at.strftime(formatstr),
-                                    timedelta_to_str(e.vod_submitted_at - e.registered_at))
+                                reply_entry += "Envio do VOD: %s\n" % e.vod_submitted_at.strftime(formatstr)
 
                     reply_entry += "\n"
 
