@@ -1,0 +1,16 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+SQLAlchemy = "*"
+python-dotenv = "*"
+pyyaml = "*"
+pillow = "*"
+"discord.py" = "*"
+
+[dev-packages]
+
+[requires]
+python_version = "3.9"
