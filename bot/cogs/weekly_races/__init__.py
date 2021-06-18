@@ -5,9 +5,9 @@ import io
 
 from database import model
 from datatypes import Games, EntryStatus, WeeklyStatus
-from helpers import get_discord_name, GameConverter, TimeConverter, DatetimeConverter, MonitorChecker, ImageHashGenerator
-from exceptions import SeedBotException
-import embeds
+from bot.helpers import get_discord_name, GameConverter, TimeConverter, DatetimeConverter, MonitorChecker, ImageHashGenerator
+from bot.exceptions import SeedBotException
+from . import embeds
 
 import functools
 import logging
@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 DATE_FORMAT = "%d/%m/%Y"
 TIME_FORMAT = "%H:%M:%S"
 DATETIME_FORMAT = "%d/%m/%Y-%H:%M"
+
 
 def timedelta_to_str(delta):
     total = int(delta.total_seconds())

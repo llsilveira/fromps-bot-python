@@ -6,7 +6,7 @@ from datetime import datetime
 from PIL import Image
 
 from datatypes import Games
-from exceptions import SeedBotException
+from bot.exceptions import SeedBotException
 
 
 def get_discord_name(discord_user):
@@ -14,7 +14,7 @@ def get_discord_name(discord_user):
 
 
 def get_resource(resource_name):
-    resource_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'resources')
+    resource_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../resources')
     return os.path.join(resource_path, resource_name)
 
 

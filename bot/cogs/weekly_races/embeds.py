@@ -1,7 +1,6 @@
 import discord
 import re
 from datetime import datetime
-from datatypes import Games
 
 
 def seed_embed(weekly, instructions):
