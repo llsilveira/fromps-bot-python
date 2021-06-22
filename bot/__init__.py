@@ -4,11 +4,9 @@ from discord.ext import commands
 from .cogs import weekly_races
 
 
-def create_bot(config, db, testing=False):
-    intents = discord.Intents.default()
-    intents.members = True
+class ZRBRBot(commands.Bot):
 
-    class SeedbotHelpCommand(commands.DefaultHelpCommand):
+    class ZRBRHelpCommand(commands.DefaultHelpCommand):
         def __init__(self):
             super().__init__(
                 command_attrs={
@@ -25,14 +23,26 @@ def create_bot(config, db, testing=False):
             return "Envie '{0}{1} comando' para mais informações sobre um comando.".format(self.clean_prefix,
                                                                                            command_name)
 
-    bot = commands.Bot(
-        command_prefix=config['command_prefix'],
-        intents=intents,
-        help_command=SeedbotHelpCommand()
-    )
-    bot.ping_on_error = config['ping_on_error']
-    bot.signup_channel = config['signup_channel']
-    bot.testing = testing
+    def __init__(self, config):
+        intents = discord.Intents.default()
+        intents.members = True
+
+        super().__init__(
+            command_prefix=config['command_prefix'],
+            intents=intents,
+            help_command=ZRBRBot.ZRBRHelpCommand()
+        )
+
+        self.ping_on_error = config['ping_on_error']
+        self.signup_channel = config['signup_channel']
+        self.testing = config['testing']
+
+
+def create_bot(config, db, testing=False):
+    config = dict(config)
+    config['testing'] = testing
+
+    bot = ZRBRBot(config)
 
     bot.load_extension('bot.extensions.reactions_feedback')
     bot.load_extension('bot.extensions.error_handling')
