@@ -6,10 +6,10 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-if __name__ == '__main__':
+def main():
     cfg = config.load_conf()
     db = Database(**cfg['database'])
-    bot = create_bot(cfg['bot'], db, cfg['general'].get('testing', False))
+    bot = create_bot(dict(cfg['bot']), db)
 
     @bot.event
     async def on_ready():
@@ -18,3 +18,7 @@ if __name__ == '__main__':
         logger.info("BOT IS READY!")
 
     bot.run(cfg['bot']['token'])
+
+
+if __name__ == '__main__':
+    main()

@@ -140,7 +140,8 @@ ROM!'
         aliases=['semente'],
         help='Solicitar a seed da semanal de sua escolha. O código do jogo é informado na lista de semanais abertas.',
         brief='Solicitar a seed da semanal de sua escolha.',
-        ignore_extra=False
+        ignore_extra=False,
+        signup_only=True
     )
     @log
     async def seed(self, ctx, codigo_do_jogo: GameConverter()):
@@ -177,7 +178,8 @@ ROM!'
         aliases=['tempo'],
         help="Enviar o tempo final da seed jogada.\nO tempo deve estar no formato 'H:MM:SS'.\nVocê deve anexar, na mesma mensagem, o print com a tela do jogo e o seu timer.\nEste comando deve ser utilizado APENAS NO PRIVADO.",
         brief="*NO PRIVADO* Enviar o tempo final da seed jogada.",
-        ignore_extra=False
+        ignore_extra=False,
+        dm_only=True
     )
     @log
     async def time(self, ctx, tempo: TimeConverter()):
@@ -212,7 +214,8 @@ ROM!'
         name="forfeit",
         aliases=['desistir'],
         help="Desistir da participação na semanal atual.\nEste comando deve ser utilizado APENAS NO PRIVADO.",
-        brief="*NO PRIVADO* Desistir da participação na semanal atual."
+        brief="*NO PRIVADO* Desistir da participação na semanal atual.",
+        dm_only=True
     )
     @log
     async def forfeit(self, ctx, *, ok: str = None):
@@ -235,7 +238,8 @@ ROM!'
         aliases=['video', 'gravacao'],
         help=" Enviar o VOD da seed jogada.\nVocê deve informar o jogo para o qual está enviando do seu VOD e a URL. O código do jogo é informado na lista de semanais abertas.\nEste comando deve ser utilizado APENAS NO PRIVADO.",
         brief="*NO PRIVADO* Enviar o VOD da seed jogada",
-        ignore_extra=False
+        ignore_extra=False,
+        dm_only=True
     )
     @log
     async def vod(self, ctx, codigo_do_jogo: GameConverter(), url_do_vod: str):
@@ -270,7 +274,8 @@ ROM!'
         name="comment",
         aliases=['comentario'],
         help="Enviar um comentário de até 250 caracteres sobre a participação na semanal.\nEste comando deve ser utilizado APENAS NO PRIVADO.",
-        brief="*NO PRIVADO* Enviar um comentário de até 250 caracteres sobre a participação na semanal."
+        brief="*NO PRIVADO* Enviar um comentário de até 250 caracteres sobre a participação na semanal.",
+        dm_only=True
     )
     async def comment(self, ctx, codigo_do_jogo: GameConverter(), *, comentario: str = None):
         game = codigo_do_jogo
@@ -299,7 +304,8 @@ ROM!'
         name="entries",
         aliases=['entradas', 'inscricoes'],
         hidden=True,
-        ignore_extra=False
+        ignore_extra=False,
+        dm_only=True
     )
     @log
     async def entries(self, ctx, codigo_do_jogo: GameConverter(), verbose: str = ""):
@@ -360,6 +366,7 @@ ROM!'
         brief="*NO PRIVADO* Criar uma nova semanal.",
         ignore_extra=False,
         hidden=True,
+        dm_only=True
     )
     @log
     async def weeklycreate(
@@ -394,6 +401,7 @@ ROM!'
         brief="*NO PRIVADO* Testa a criação de uma semanal.",
         ignore_extra=False,
         hidden=True,
+        dm_only=True
     )
     async def weeklytest(
             self,
@@ -430,6 +438,7 @@ ROM!'
         brief="*NO PRIVADO* Encerra completamente uma semanal.",
         ignore_extra=False,
         hidden=True,
+        dm_only=True
     )
     @log
     async def weeklyclose(self, ctx, codigo_do_jogo: GameConverter()):
@@ -451,6 +460,7 @@ ROM!'
         brief="*NO PRIVADO* Alterar uma semanal.",
         ignore_extra=False,
         hidden=True,
+        dm_only=True
     )
     @log
     async def weeklyupdate(
@@ -488,6 +498,7 @@ ROM!'
         brief="*NO PRIVADO* Altera uma entrada da semanal.",
         ignore_extra=False,
         hidden=True,
+        dm_only=True
     )
     @log
     async def entryupdate(
