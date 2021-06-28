@@ -1,15 +1,18 @@
-import config
+from util import load_conf, setup_logging
 from database import Database
 from bot import create_bot
 
-import logging
-logger = logging.getLogger(__name__)
 
 
 def main():
-    cfg = config.load_conf()
+    cfg = load_conf()
+    setup_logging(cfg['logging'])
+
+    import logging
+    logger = logging.getLogger(__name__)
+
     db = Database(**cfg['database'])
-    bot = create_bot(dict(cfg['bot']), db)
+    bot = create_bot(cfg['bot'], db)
 
     @bot.event
     async def on_ready():

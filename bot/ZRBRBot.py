@@ -1,9 +1,9 @@
 import discord
 from discord.ext import commands
 
-from bot.helpers import get_discord_name
-from bot.exceptions import SeedBotException
-from bot.helpers import TimeConverter, DatetimeConverter, GameConverter
+from helpers import get_discord_name
+from .exceptions import ZRBRBotException
+from .converters import TimeConverter, DatetimeConverter, GameConverter
 
 import logging
 logger = logging.getLogger(__name__)
@@ -126,7 +126,7 @@ class ZRBRBot(commands.Bot):
                 user = await self.fetch_user(self.ping_on_error)
                 await ping_on_error(user, ctx, error)
 
-        if isinstance(error, commands.errors.CommandInvokeError) and isinstance(error.original, SeedBotException):
+        if isinstance(error, commands.errors.CommandInvokeError) and isinstance(error.original, ZRBRBotException):
             await ctx.reply(error.original)
 
         elif isinstance(error, commands.MissingRequiredArgument):

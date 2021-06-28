@@ -1,48 +1,22 @@
 from discord import File
 from discord.ext import commands
-from datetime import datetime, time, date
-import io
 
 from database import model
 from datatypes import Games, EntryStatus, WeeklyStatus
-from bot.helpers import get_discord_name, GameConverter, TimeConverter, DatetimeConverter, MonitorChecker, ImageHashGenerator
-from bot.exceptions import SeedBotException
+
+from helpers import get_discord_name, time_to_timedelta, timedelta_to_str
+from bot.converters import GameConverter, TimeConverter, DatetimeConverter
+from util.ImageHashGenerator import ImageHashGenerator
+from bot.exceptions import ZRBRBotException
+
 from . import embeds
 
+from datetime import datetime, time
+import io
 import functools
+
 import logging
 logger = logging.getLogger(__name__)
-
-
-DATE_FORMAT = "%d/%m/%Y"
-TIME_FORMAT = "%H:%M:%S"
-DATETIME_FORMAT = "%d/%m/%Y-%H:%M"
-
-
-def timedelta_to_str(delta):
-    total = int(delta.total_seconds())
-
-    if total < 0:
-        total = -total
-        value = '-'
-    else:
-        value = '+'
-
-    seconds = total % 60
-    total //= 60
-    minutes = total % 60
-    total //= 60
-    hours = total % 24
-    days = total // 24
-
-    if days > 0:
-        value += "{:d}d ".format(days)
-    value += "{:d}:{:02d}:{:02d}".format(hours, minutes, seconds)
-    return value
-
-
-def time_to_timedelta(time):
-    return datetime.combine(date.min, time) - datetime.min
 
 
 def log(f):
@@ -66,22 +40,9 @@ def log(f):
 class Weekly(commands.Cog, name="Semanais"):
     def __init__(self, bot, config, database):
         self.bot = bot
-        self.config = config
         self.db = database
-        self.monitor_checker = MonitorChecker(config)
+        self.monitors = {Games[key]: monitor for (key, monitor) in config['monitors'].items()}
         self.img_hash_generator = ImageHashGenerator()
-
-        # Load instructions file
-        #with open(self.config['instructions_file'], 'r') as instructions_file:
-        #    try:
-        #        instructions = yaml.safe_load(instructions_file)
-        #    except Exception as e:
-        #        logger.exception(e)
-        #        raise
-        #self.instructions = {'ALL': instructions['ALL']}
-        #self.instructions.update({
-        #    Games[game_name]: instruction for game_name, instruction in instructions.items() if game_name != 'ALL'
-        #})
 
         self.instructions = {
             'ALL': """\
@@ -150,10 +111,10 @@ ROM!'
         with self.db.Session() as session:
             weekly = self.db.get_open_weekly(session, game)
             if weekly is None:
-                raise SeedBotException("A semanal de %s não está aberta." % game)
+                raise ZRBRBotException("A semanal de %s não está aberta." % game)
 
             if datetime.now() >= weekly.submission_end:
-                raise SeedBotException("As inscrições para a semanal de %s foram encerradas." % game)
+                raise ZRBRBotException("As inscrições para a semanal de %s foram encerradas." % game)
 
             author = ctx.author
             entry = self.db.get_player_entry(session, weekly, author.id)
@@ -161,12 +122,12 @@ ROM!'
                 registered = self.db.get_registered_entry(session, author.id)
                 if registered is not None:
                     game = registered.weekly.game
-                    raise SeedBotException(
+                    raise ZRBRBotException(
                         "Você deve registrar o seu tempo ou desistir da semanal de %s antes de participar de outra. " % game
                     )
                 self.db.register_player(session, weekly, author.id, get_discord_name(author))
             elif entry.status != EntryStatus.REGISTERED:
-                raise SeedBotException(
+                raise ZRBRBotException(
                     "Você já participou da semanal de %s. Caso tenha concluído a seed mas ainda não enviou o seu VOD, você pode fazê-lo utilizando o comando %svod" % (game, ctx.prefix)
                 )
 
@@ -189,14 +150,14 @@ ROM!'
             author_id = ctx.author.id
             entry = self.db.get_registered_entry(session, author_id)
             if entry is None:
-                raise SeedBotException("Você já registrou seu tempo ou não está participando de uma semanal aberta.")
+                raise ZRBRBotException("Você já registrou seu tempo ou não está participando de uma semanal aberta.")
 
             # Submissions of time are not limited for now
             #if datetime.now() >= entry.weekly.submission_end:
-            #    raise SeedBotException("As submissões de tempo para a semanal de %s foram encerradas." % entry.weekly.game)
+            #    raise ZRBRBotException("As submissões de tempo para a semanal de %s foram encerradas." % entry.weekly.game)
 
             if len(ctx.message.attachments) != 1:
-                raise SeedBotException(
+                raise ZRBRBotException(
                     "Você deve enviar o print mostrando a tela final do jogo e o seu timer juntamente com este comando."
                 )
 
@@ -223,10 +184,10 @@ ROM!'
             author_id = ctx.author.id
             entry = self.db.get_registered_entry(session, author_id)
             if entry is None:
-                raise SeedBotException("Você já registrou seu tempo ou não está participando de uma semanal.")
+                raise ZRBRBotException("Você já registrou seu tempo ou não está participando de uma semanal.")
 
             if ok is None or str.lower(ok) != "ok":
-                raise SeedBotException(
+                raise ZRBRBotException(
                     "Confirme sua desistência da semanal de %s ação enviando o comando '%s%s ok' aqui." % (entry.weekly.game, ctx.prefix, ctx.invoked_with)
                 )
 
@@ -249,23 +210,23 @@ ROM!'
         with self.db.Session() as session:
             weekly = self.db.get_open_weekly(session, game)
             if weekly is None:
-                raise SeedBotException("Não há uma semanal de %s em andamento." % game)
+                raise ZRBRBotException("Não há uma semanal de %s em andamento." % game)
 
             # Submissions of VOD are not limited for now
             #if datetime.now() >= weekly.submission_end:
-            #    raise SeedBotException("Os envios para a semanal de %s foram encerradas." % weekly.game)
+            #    raise ZRBRBotException("Os envios para a semanal de %s foram encerradas." % weekly.game)
 
             author_id = ctx.author.id
             entry = self.db.get_player_entry(session, weekly, author_id)
             if entry is None:
-                raise SeedBotException("Você ainda não solicitou a seed da semanal de %s." % game)
+                raise ZRBRBotException("Você ainda não solicitou a seed da semanal de %s." % game)
 
             if entry.status == EntryStatus.REGISTERED:
-                raise SeedBotException("Você deve submeter o seu tempo através do comando '%stime' antes de enviar o seu VOD." % ctx.prefix)
+                raise ZRBRBotException("Você deve submeter o seu tempo através do comando '%stime' antes de enviar o seu VOD." % ctx.prefix)
             elif entry.status == EntryStatus.DONE:
-                raise SeedBotException("Você já enviou o seu VOD para a semanal de %s." % game)
+                raise ZRBRBotException("Você já enviou o seu VOD para a semanal de %s." % game)
             elif entry.status == EntryStatus.DNF:
-                raise SeedBotException("Você não está mais participando desta semanal.")
+                raise ZRBRBotException("Você não está mais participando desta semanal.")
 
             self.db.submit_vod(session, entry, vod_url)
             await ctx.message.reply("VOD recebido com sucesso! Agradecemos a sua participação!")
@@ -284,15 +245,15 @@ ROM!'
         with self.db.Session() as session:
             weekly = self.db.get_open_weekly(session, game)
             if weekly is None:
-                raise SeedBotException("Não há uma semanal de %s em andamento." % game)
+                raise ZRBRBotException("Não há uma semanal de %s em andamento." % game)
 
             author_id = ctx.author.id
             entry = self.db.get_player_entry(session, weekly, author_id)
             if entry is None:
-                raise SeedBotException("Você ainda não solicitou a seed da semanal de %s." % game)
+                raise ZRBRBotException("Você ainda não solicitou a seed da semanal de %s." % game)
 
             if comment is not None and len(comment) > 250:
-                raise SeedBotException("Seu comentário deve ter no máximo 250 caracteres.")
+                raise ZRBRBotException("Seu comentário deve ter no máximo 250 caracteres.")
 
             self.db.submit_comment(session, entry, comment)
             if comment is None:
@@ -311,12 +272,12 @@ ROM!'
     async def entries(self, ctx, codigo_do_jogo: GameConverter(), verbose: str = ""):
         game = codigo_do_jogo
         verbose = str.lower(verbose) in ['t', 'true', 'y', 'yes', 's', 'sim', '1', 'on', 'v', '-v', 'verbose', '--verbose']
-        self.monitor_checker.check(ctx.author, game)
+        self._check_monitor(ctx.author, game)
 
         with self.db.Session() as session:
             weekly = self.db.get_open_weekly(session, game)
             if weekly is None:
-                raise SeedBotException("Não há uma semanal de %s em andamento." % game)
+                raise ZRBRBotException("Não há uma semanal de %s em andamento." % game)
 
             entries = sorted(weekly.entries, key=lambda e: e.finish_time if e.finish_time is not None else time(23, 59))
 
@@ -336,7 +297,7 @@ ROM!'
                         reply_entry += "Comentário: %s\n" % comment
 
                     if verbose:
-                        formatstr = DATE_FORMAT + " " + TIME_FORMAT
+                        formatstr = "%d/%m/%Y %H:%M"
                         reply_entry += "Registro: %s\n" % e.registered_at.strftime(formatstr)
                         if e.status in [EntryStatus.TIME_SUBMITTED, EntryStatus.DONE]:
                             reply_entry += "Envio do tempo: %s (%s)\n" % (
@@ -381,12 +342,12 @@ ROM!'
         seed_url = url_da_seed
         hash_str = codigo_de_verificacao
         submission_end = limite_para_envios
-        self.monitor_checker.check(ctx.author, game)
+        self._check_monitor(ctx.author, game)
 
         with self.db.Session() as session:
             weekly = self.db.get_open_weekly(session, game)
             if weekly is not None:
-                raise SeedBotException("Há uma semanal aberta para %s. Feche-a primeiro antes de criar uma nova." % game)
+                raise ZRBRBotException("Há uma semanal aberta para %s. Feche-a primeiro antes de criar uma nova." % game)
 
             if game in [Games.ALTTPR, Games.OOTR]:
                 hash_str = await self.genhash(ctx, game, hash_str)
@@ -415,7 +376,7 @@ ROM!'
         seed_url = url_da_seed
         hash_str = codigo_de_verificacao
         submission_end = limite_para_envios
-        self.monitor_checker.check(ctx.author, game)
+        self._check_monitor(ctx.author, game)
 
         if game in [Games.ALTTPR, Games.OOTR]:
             hash_str = await self.genhash(ctx, game, hash_str)
@@ -443,12 +404,12 @@ ROM!'
     @log
     async def weeklyclose(self, ctx, codigo_do_jogo: GameConverter()):
         game = codigo_do_jogo
-        self.monitor_checker.check(ctx.author, game)
+        self._check_monitor(ctx.author, game)
 
         with self.db.Session() as session:
             weekly = self.db.get_open_weekly(session, game)
             if weekly is None:
-                raise SeedBotException("A semanal de %s não está aberta." % game)
+                raise ZRBRBotException("A semanal de %s não está aberta." % game)
 
             self.db.close_weekly(session, weekly)
             await ctx.message.reply("Semanal de %s fechada com sucesso!" % game)
@@ -475,15 +436,15 @@ ROM!'
         seed_url = url_da_seed
         hash_str = codigo_de_verificacao
         submission_end = limite_para_envios
-        self.monitor_checker.check(ctx.author, game)
+        self._check_monitor(ctx.author, game)
 
         with self.db.Session() as session:
             weekly = self.db.get_open_weekly(session, game)
             if weekly is None:
-                raise SeedBotException("Não há uma semanal aberta para %s." % game)
+                raise ZRBRBotException("Não há uma semanal aberta para %s." % game)
 
             if len(weekly.entries) > 0 and weekly.seed_url != seed_url:
-                raise SeedBotException("Existem entradas registradas para esta semanal, portanto não é possível alterar a URL da seed.")
+                raise ZRBRBotException("Existem entradas registradas para esta semanal, portanto não é possível alterar a URL da seed.")
 
             if game in [Games.ALTTPR, Games.OOTR]:
                 hash_str = await self.genhash(ctx, game, hash_str)
@@ -513,40 +474,40 @@ ROM!'
         player = jogador
         parameter = str.lower(parametro)
         value = valor
-        self.monitor_checker.check(ctx.author, game)
+        self._check_monitor(ctx.author, game)
 
         with self.db.Session() as session:
             weekly = self.db.get_open_weekly(session, game)
             if weekly is None:
-                raise SeedBotException("Não há uma semanal de %s em andamento." % game)
+                raise ZRBRBotException("Não há uma semanal de %s em andamento." % game)
 
             entry = self.db.get_player_entry_by_name(session, weekly, jogador)
             if entry is None:
-                raise SeedBotException("%s não está participando da semanal de %s." % (player, game))
+                raise ZRBRBotException("%s não está participando da semanal de %s." % (player, game))
 
             if entry.status == EntryStatus.DNF:
-                raise SeedBotException("%s não está mais participando da semanal de %s." % (player, game))
+                raise ZRBRBotException("%s não está mais participando da semanal de %s." % (player, game))
 
             if parameter == 'time':
                 converter = TimeConverter()
                 try:
                     time = await converter.convert(ctx, value)
                 except:
-                    raise SeedBotException("O tempo fornecido deve estar no formato '%s'." % converter.description_format)
+                    raise ZRBRBotException("O tempo fornecido deve estar no formato '%s'." % converter.description_format)
 
                 if entry.status not in [EntryStatus.TIME_SUBMITTED, EntryStatus.DONE]:
-                    raise SeedBotException("%s ainda não enviou seu tempo para a semanal de %s." % (player, game))
+                    raise ZRBRBotException("%s ainda não enviou seu tempo para a semanal de %s." % (player, game))
 
                 self.db.update_time(session, entry, time)
 
             elif parameter == 'vod':
                 if entry.status is not EntryStatus.DONE:
-                    raise SeedBotException("%s ainda não enviou seu VOD para a semanal de %s." % (player, game))
+                    raise ZRBRBotException("%s ainda não enviou seu VOD para a semanal de %s." % (player, game))
 
                 self.db.update_vod(session, entry, value)
 
             else:
-                raise SeedBotException("Parâmetro desconhecido: %s." % (parametro))
+                raise ZRBRBotException("Parâmetro desconhecido: %s." % (parametro))
 
             await ctx.message.reply("Entrada de %s para a semanal de %s alterada com sucesso!" % (player, game))
 
@@ -554,10 +515,23 @@ ROM!'
         try:
             img_bytes = self.img_hash_generator.generate(game, hash_str)
         except ValueError as e:
-            raise SeedBotException(str(e))
+            raise ZRBRBotException(str(e))
 
         with io.BytesIO(img_bytes) as img:
             message = await ctx.reply("", file=File(img, "hash.png"))
             if len(message.attachments) != 1:
-                raise SeedBotException("Erro ao enviar a imagem pelo Discord.")
+                raise ZRBRBotException("Erro ao enviar a imagem pelo Discord.")
             return message.attachments[0].url
+
+    def _check_monitor(self, user, game=None):
+        user_name = get_discord_name(user)
+
+        if game is not None:
+            if game in self.monitors.keys() and user_name in self.monitors[game]:
+                return
+            raise ZRBRBotException("Você não é monitor de %s." % game)
+
+        for monitor_list in self.monitors.values():
+            if user_name in monitor_list:
+                return
+        raise ZRBRBotException("Este comando deve ser executado apenas por monitores.")

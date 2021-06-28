@@ -1,2 +1,2 @@
-class SeedBotException(Exception):
+class ZRBRBotException(Exception):
     pass
