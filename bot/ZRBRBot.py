@@ -9,16 +9,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-param_map = {
-    "codigo_do_jogo": "o código do jogo",
-    "tempo": "o tempo",
-    "url_do_vod": "a URL do seu VOD",
-    "url_da_seed": "a URL da seed",
-    "codigo_de_verificacao": "o código de verificação",
-    "limite_para_envios": "o limite para envios"
-}
-
-
 async def ping_on_error(user, ctx, error):
     dm = user.dm_channel
     if dm is None:
@@ -71,6 +61,9 @@ class ZRBRBot(commands.Bot):
         self.success_emoji = config.get('success_emoji', '✅')
         self.error_emoji = config.get('error_emoji', '❌')
 
+    def get_signup_channel(self):
+        return self.get_channel(self.signup_channel_id)
+
     async def on_message(self, message):
         if message.author.id == self.user.id or (
                 not isinstance(message.channel, discord.DMChannel) and message.channel.id != self.signup_channel_id):
@@ -90,7 +83,7 @@ class ZRBRBot(commands.Bot):
 
             if command.__original_kwargs__.get('signup_only', False):
                 await message.reply(
-                    "Este comando deve ser usado no canal #%s." % self.get_channel(self.signup_channel_id).name)
+                    "Este comando deve ser usado no canal #%s." % self.get_signup_channel().name)
                 return
 
         elif channel.id == self.signup_channel_id:
@@ -130,8 +123,11 @@ class ZRBRBot(commands.Bot):
             await ctx.reply(error.original)
 
         elif isinstance(error, commands.MissingRequiredArgument):
-            await ctx.reply("Você deve informar %s. Consulte o comando 'ajuda' para mais informações." % param_map[
-                error.param.name])
+            param_map = {}
+            if ctx.cog is not None:
+                param_map = getattr(ctx.cog, 'param_map', param_map)
+            await ctx.reply("Você deve informar %s. Consulte o comando 'ajuda' para mais informações." % param_map.get(
+                error.param.name, error.param.name))
 
         elif isinstance(error, commands.TooManyArguments):
             await ctx.reply(

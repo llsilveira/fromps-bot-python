@@ -1,5 +1,6 @@
 from discord import File
 from discord.ext import commands
+import yaml
 
 from database import model
 from datatypes import Games, EntryStatus, WeeklyStatus
@@ -44,45 +45,25 @@ class Weekly(commands.Cog, name="Semanais"):
         self.monitors = {Games[key]: monitor for (key, monitor) in config['monitors'].items()}
         self.img_hash_generator = ImageHashGenerator()
 
-        self.instructions = {
-            'ALL': """\
-Obrigado por participar desta semanal!
+        # Load instructions file
+        with open(config['instructions_file'], 'r') as instructions_file:
+            try:
+                instructions = yaml.safe_load(instructions_file)
+            except Exception as e:
+                logger.exception(e)
+                raise
+        self.instructions = {'ALL': instructions['ALL']}
+        self.instructions.update({
+            Games[game_name]: instruction for game_name, instruction in instructions.items() if game_name != 'ALL'
+        })
 
-Ao jogar esta seed, grave a sua gameplay localmente, ou faça uma stream não listada no youtube sem divulgá-la a \
-ninguém. Sua gravação deve conter, a todo momento, o timer e a imagem limpa do jogo (não coloque nada sobre o jogo, \
-nem mesmo o timer). O áudio da gravação também deve estar limpo, contendo apenas o som do próprio jogo. **Deixe um \
-intervalo de pelo menos 1 minuto entre o início da gravação e o início da gameplay e grave toda a sequência de \
-créditos após o fim do jogo**.
-
-Ao terminar a seed, envie um print contendo a tela final do jogo e o seu timer. O tempo enviado será o IRT, portanto \
-não pause seu timer durante o jogo (caso aconteça um pause não intencional, calcule o tempo real utilizando a sua \
-gravação e avise o monitor da semanal que o seu tempo foi recalculado). A explicação completa dos procedimentos para \
-envio do seu tempo e da sua gravação encontra-se na mensagem pinada no canal **#semanais-seed**.
-
-GLHF!
---------
-""",
-
-            Games.OOTR: """\
-**Settings:** ZRBR Blitz (https://pastebin.com/3N0mnBrB)
-
-**Instruções para gerar a ROM:** Salve o arquivo .zpf abaixo e acesse <https://ootrandomizer.com/generator>. Na aba \
-'ROM Options', selecione a opção 'Generate From Patch File'. Envie o arquivo .zpf que você baixou e clique em 'PATCH \
-ROM!'
-""",
-
-            Games.ALTTPR: """\
-**Preset:** Openboots
-
-**Quickswap:** Habilitado
-""",
-            Games.MMR: """\
-**Settings:** ZRBR (https://pastebin.com/ArbK7SXG)
-""",
-
-            Games.PKMN_CRYSTAL: """\
-**Settings e Regras:** https://pastebin.com/m1prCWKZ
-""",
+        self.param_map = {
+            "codigo_do_jogo": "o código do jogo",
+            "tempo": "o tempo",
+            "url_do_vod": "a URL do seu VOD",
+            "url_da_seed": "a URL da seed",
+            "codigo_de_verificacao": "o código de verificação",
+            "limite_para_envios": "o limite para envios"
         }
 
     @commands.command(
@@ -131,7 +112,7 @@ ROM!'
                     "Você já participou da semanal de %s. Caso tenha concluído a seed mas ainda não enviou o seu VOD, você pode fazê-lo utilizando o comando %svod" % (game, ctx.prefix)
                 )
 
-            embed = embeds.seed_embed(weekly, self.instructions)
+            embed = embeds.seed_embed(self.bot, weekly, self.instructions)
             await ctx.author.send(embed=embed)
 
     @commands.command(
@@ -389,7 +370,7 @@ ROM!'
             created_at=datetime.now(),
             submission_end=submission_end
         )
-        embed = embeds.seed_embed(weekly, self.instructions)
+        embed = embeds.seed_embed(self.bot, weekly, self.instructions)
         await ctx.author.send(embed=embed)
 
     @commands.command(
