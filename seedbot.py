@@ -14,13 +14,13 @@ def main():
     db = Database(**cfg['database'])
     bot = create_bot(cfg['bot'], db)
 
-    @bot.event
+    @bot.listen()
     async def on_ready():
         print('Logged in as %s<%s>' % (bot.user.name, bot.user.id))
         print('------')
         logger.info("BOT IS READY!")
 
-    bot.run(cfg['bot']['token'])
+    bot.run()
 
 
 if __name__ == '__main__':

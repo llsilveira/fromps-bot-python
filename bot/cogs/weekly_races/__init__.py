@@ -112,7 +112,7 @@ class Weekly(commands.Cog, name="Semanais"):
                     "Você já participou da semanal de %s. Caso tenha concluído a seed mas ainda não enviou o seu VOD, você pode fazê-lo utilizando o comando %svod" % (game, ctx.prefix)
                 )
 
-            embed = embeds.seed_embed(self.bot, weekly, self.instructions)
+            embed = embeds.seed_embed(ctx, weekly, self.instructions)
             await ctx.author.send(embed=embed)
 
     @commands.command(

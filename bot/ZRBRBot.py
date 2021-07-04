@@ -53,20 +53,39 @@ class ZRBRBot(commands.Bot):
             help_command=ZRBRBot.ZRBRHelpCommand()
         )
 
+        self._config = config
+
+        self.token = config.get('token')
+
+        self.signup_channels = []
+        self.cleanup_signup_channels = config.get('cleanup_signup_channels', False)
+
         self.ping_on_error = config.get('ping_on_error', False)
-        self.signup_channel_id = config.get('signup_channel_id')
-        self.cleanup_signup_channel = config.get('cleanup_signup_channel', False)
 
         self.busy_emoji = config.get('busy_emoji', '⌚')
         self.success_emoji = config.get('success_emoji', '✅')
         self.error_emoji = config.get('error_emoji', '❌')
 
-    def get_signup_channel(self):
-        return self.get_channel(self.signup_channel_id)
+    async def on_ready(self):
+        try:
+            channels = self._config.get('channels')
+            for guild_id in channels:
+                guild = discord.utils.find(lambda guild: guild.id == guild_id, self.guilds)
+                if guild is None:
+                    raise ValueError("Configuration Error: This bot is not on a guild with id '{}'".format(guild_id))
+                signup_channel = discord.utils.find(
+                    lambda channel: channel.id == channels[guild_id]['signup'], guild.channels)
+                if signup_channel is None:
+                    raise ValueError("Configuration Error: Sever {} does not have a channel with id '{}'".format(
+                        guild.name, channels[guild_id]['signup']))
+                self.signup_channels.append(signup_channel)
+        except Exception:
+            await self.close()
+            raise
 
     async def on_message(self, message):
         if message.author.id == self.user.id or (
-                not isinstance(message.channel, discord.DMChannel) and message.channel.id != self.signup_channel_id):
+                not isinstance(message.channel, discord.DMChannel) and message.channel not in self.signup_channels):
             return
 
         async with message.channel.typing():
@@ -83,17 +102,17 @@ class ZRBRBot(commands.Bot):
 
             if command.__original_kwargs__.get('signup_only', False):
                 await message.reply(
-                    "Este comando deve ser usado no canal #%s." % self.get_signup_channel().name)
+                    "Este comando não deve ser utilizado neste canal privado.")
                 return
 
-        elif channel.id == self.signup_channel_id:
+        elif channel in self.signup_channels:
             if command is None:
-                if self.cleanup_signup_channel:
+                if self.cleanup_signup_channels:
                     await message.delete()
                 return
 
             if command.__original_kwargs__.get('dm_only', False):
-                if self.cleanup_signup_channel:
+                if self.cleanup_signup_channels:
                     await message.delete()
                 await message.author.send("O comando '%s' deve ser usado neste canal privado." % ctx.invoked_with)
                 return
@@ -156,3 +175,9 @@ class ZRBRBot(commands.Bot):
 
         else:
             await handle_unknown_exception()
+
+    def event(self, coro):
+        raise Exception("This decorator is disabled. Use 'listen()' instead")
+
+    def run(self, *args, **kwargs):
+        super().run(self.token, *args, **kwargs)

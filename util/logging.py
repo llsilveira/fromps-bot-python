@@ -21,7 +21,6 @@ def setup_logging(config):
         datefmt=config.get('datefmt', "%Y-%m-%d %H:%M:%S"))
 
     logfile = config.get('logfile', None)
-    print(logfile)
     if logfile is None:
         handler = logging.StreamHandler()
     else:

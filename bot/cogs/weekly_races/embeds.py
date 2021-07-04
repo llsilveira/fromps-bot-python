@@ -3,11 +3,11 @@ import re
 from datetime import datetime
 
 
-def seed_embed(bot, weekly, instructions):
+def seed_embed(ctx, weekly, instructions):
     game = weekly.game
     description = instructions['ALL'] + "\n" + instructions[game]
     description += "\n**Seed:** " + weekly.seed_url + "\n\n**Código de Verificação:** "
-    description = description.format(signup_channel=bot.get_signup_channel())
+    description = description.format(channel=ctx.message.channel)
 
     embed = discord.Embed(
         title="ZRBR Semanal - %s" % weekly.game,
