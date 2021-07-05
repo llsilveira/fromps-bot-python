@@ -244,7 +244,7 @@ class Weekly(commands.Cog, name="Semanais"):
 
     @commands.command(
         name="entries",
-        aliases=['entradas', 'inscricoes'],
+        aliases=['entradas', 'inscricoes', 'e'],
         hidden=True,
         ignore_extra=False,
         dm_only=True
@@ -370,7 +370,7 @@ class Weekly(commands.Cog, name="Semanais"):
             created_at=datetime.now(),
             submission_end=submission_end
         )
-        embed = embeds.seed_embed(self.bot, weekly, self.instructions)
+        embed = embeds.seed_embed(ctx, weekly, self.instructions)
         await ctx.author.send(embed=embed)
 
     @commands.command(

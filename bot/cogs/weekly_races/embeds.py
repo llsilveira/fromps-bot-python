@@ -4,10 +4,11 @@ from datetime import datetime
 
 
 def seed_embed(ctx, weekly, instructions):
+    signup_channel = "semanais-seed" if isinstance(ctx.message.channel, discord.DMChannel) else ctx.message.channel.name
     game = weekly.game
     description = instructions['ALL'] + "\n" + instructions[game]
     description += "\n**Seed:** " + weekly.seed_url + "\n\n**Código de Verificação:** "
-    description = description.format(channel=ctx.message.channel)
+    description = description.format(signup_channel=signup_channel)
 
     embed = discord.Embed(
         title="ZRBR Semanal - %s" % weekly.game,
