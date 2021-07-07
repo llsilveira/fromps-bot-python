@@ -169,7 +169,7 @@ class Weekly(commands.Cog, name="Semanais"):
 
             if ok is None or str.lower(ok) != "ok":
                 raise ZRBRBotException(
-                    "Confirme sua desistência da semanal de %s ação enviando o comando '%s%s ok' aqui." % (entry.weekly.game, ctx.prefix, ctx.invoked_with)
+                    "Confirme sua desistência da semanal de %s enviando o comando '%s%s ok' neste chat privado." % (entry.weekly.game, ctx.prefix, ctx.invoked_with)
                 )
 
             self.db.forfeit_player(session, entry.weekly, author_id)

@@ -34,6 +34,11 @@ class Games(enum.Enum):
         ["pkmn", "pokemon", "pkm", "poke", "pokémon"],
         0xFFCB06,
     )
+    SMR = (
+        "Super Metroid Randomizer",
+        ["sm", "smr", "metroid3", "m3", "m3r"],
+        0x127C6A,
+    )
 
     def __init__(self, str, keys, color):
         self.str = str
