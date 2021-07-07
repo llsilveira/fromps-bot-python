@@ -396,6 +396,29 @@ class Weekly(commands.Cog, name="Semanais"):
             await ctx.message.reply("Semanal de %s fechada com sucesso!" % game)
 
     @commands.command(
+        name="weeklyreopen",
+        aliases=['reabrirsemanal'],
+        help="Reabre a última semanal fechada.\nEste comando deve ser utilizado APENAS NO PRIVADO.",
+        brief="*NO PRIVADO* Reabre a última semanal fechada.",
+        ignore_extra=False,
+        hidden=True,
+        dm_only=True
+    )
+    @log
+    async def weeklyreopen(self, ctx, codigo_do_jogo: GameConverter()):
+        game = codigo_do_jogo
+        self._check_monitor(ctx.author, game)
+
+        with self.db.Session() as session:
+            weekly = self.db.get_open_weekly(session, game)
+            if weekly is not None:
+                raise ZRBRBotException("A semanal de %s não está fechada." % game)
+            weekly = self.db.get_last_closed_weekly(session, game)
+            if weekly is None:
+                raise ZRBRBotException("Não há uma semanal de %s fechada." % game)
+            self.db.reopen_weekly(session, weekly)
+
+    @commands.command(
         name="weeklyupdate",
         aliases=['alterarsemanal'],
         help="Alterar uma semanal.\nEste comando deve ser utilizado APENAS NO PRIVADO.",

@@ -6,6 +6,9 @@ from datetime import datetime
 from datatypes import EntryStatus, WeeklyStatus
 from database.model import PlayerEntry, Weekly, Base
 
+import logging
+logger = logging.getLogger(__name__)
+
 
 class ConsistencyError(Exception):
     pass
@@ -46,6 +49,24 @@ class Database:
                 Weekly.created_at.desc()
             )
         ).scalars().first()
+
+    def get_last_closed_weekly(self, session, game):
+        return session.execute(
+            select(Weekly).where(Weekly.game == game, Weekly.status == WeeklyStatus.CLOSED).order_by(
+                Weekly.created_at.desc()
+            )
+        ).scalars().first()
+
+    def reopen_weekly(self, session, weekly):
+        if weekly.status is not WeeklyStatus.CLOSED:
+            raise ConsistencyError("Attempt to reopen a weekly that was not closed.")
+        open_weekly = self.get_open_weekly(session, weekly.game)
+        if open_weekly is not None:
+            raise ConsistencyError(
+                "Attempt to reopen a weekly while another one for the same game is open"
+            )
+        weekly.status = WeeklyStatus.OPEN
+        session.commit()
 
     def list_open_weeklies(self, session):
         return session.execute(
@@ -110,7 +131,7 @@ class Database:
             return None
 
         if len(registered) > 1:
-            logging.error(
+            logger.error(
                 "An inconsistency was found while quering the database: user %d has more than one 'REGISTERED' entry.",
                 discord_id
             )
