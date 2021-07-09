@@ -209,7 +209,7 @@ class Database:
         Base.metadata.create_all(self.engine)
 
     @staticmethod
-    def build_database_url(*, dialect, dbapi="", user="", password="", host="", port="", dbpath):
+    def build_database_url(*, dialect, dbapi="", user="", password="", host="", port="", dbpath, **kwargs):
         def add_if_not_none(value, *, prefix="", suffix=""):
             if value is not None and len(value) > 0:
                 return prefix + value + suffix

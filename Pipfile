@@ -9,6 +9,7 @@ python-dotenv = "*"
 pyyaml = "*"
 pillow = "*"
 "discord.py" = "*"
+alembic = "*"
 
 [dev-packages]
 
