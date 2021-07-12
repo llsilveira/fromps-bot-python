@@ -158,12 +158,9 @@ class ZRBRBot(commands.Bot):
             if isinstance(converter, GameConverter):
                 await ctx.reply("O código informado não corresponde a um jogo conhecido.")
             elif isinstance(converter, DatetimeConverter):
-                if isinstance(converter, TimeConverter):
-                    msg = "O tempo fornecido deve "
-                else:
-                    msg = "A data e hora fornecidos devem "
-                msg += "estar no formato '%s'." % converter.description_format
-                await ctx.reply(msg)
+                await ctx.reply("A data e hora fornecidos devem estar no formato '%s'." % converter.description_format)
+            elif isinstance(converter, TimeConverter):
+                await ctx.reply("O tempo fornecido deve estar no formato '%s'." % converter.description_format)
             else:
                 await handle_unknown_exception()
 
