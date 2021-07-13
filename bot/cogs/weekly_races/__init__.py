@@ -265,7 +265,21 @@ class Weekly(commands.Cog, name="Semanais"):
             if len(entries) > 0:
                 reply = ""
                 for e in entries:
-                    reply_entry = "Player: %s\nStatus: %s\n" % (e.discord_name, e.status.name)
+
+                    user = self.bot.get_user(e.discord_id)
+                    nicknames = []
+                    for guild in self.bot.guilds:
+                        member = guild.get_member(user.id)
+                        if member is not None:
+                            name = member.display_name
+                            if user.name != name and name not in nicknames:
+                                nicknames.append(name)
+
+                    name = get_discord_name(user)
+                    if len(nicknames) > 0:
+                        name += " (Aka: {})".format(", ".join(nicknames))
+
+                    reply_entry = "Player: %s\nStatus: %s\n" % (name, e.status.name)
                     if e.status in [EntryStatus.TIME_SUBMITTED, EntryStatus.DONE]:
                         finish_time = str(e.finish_time)
                         if not verbose:
