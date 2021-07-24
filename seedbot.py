@@ -3,7 +3,6 @@ from database import Database
 from bot import create_bot
 
 
-
 def main():
     cfg = load_conf()
     setup_logging(cfg['logging'])

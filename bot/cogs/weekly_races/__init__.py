@@ -125,7 +125,7 @@ class Weekly(commands.Cog, name="Semanais"):
     )
     @log
     async def time(self, ctx, tempo: TimeConverter()):
-        time = tempo
+        finish_time = tempo
 
         with self.db.Session() as session:
             author_id = ctx.author.id
@@ -134,7 +134,7 @@ class Weekly(commands.Cog, name="Semanais"):
                 raise ZRBRBotException("Você já registrou seu tempo ou não está participando de uma semanal aberta.")
 
             # Submissions of time are not limited for now
-            #if datetime.now() >= entry.weekly.submission_end:
+            # if datetime.now() >= entry.weekly.submission_end:
             #    raise ZRBRBotException("As submissões de tempo para a semanal de %s foram encerradas." % entry.weekly.game)
 
             if len(ctx.message.attachments) != 1:
@@ -142,11 +142,11 @@ class Weekly(commands.Cog, name="Semanais"):
                     "Você deve enviar o print mostrando a tela final do jogo e o seu timer juntamente com este comando."
                 )
 
-            self.db.submit_time(session, entry, time, ctx.message.attachments[0].url)
+            self.db.submit_time(session, entry, finish_time, ctx.message.attachments[0].url)
             await ctx.message.reply(
                 "Seu tempo de %s na semanal de %s foi registrado! "
                 "Não esqueça de enviar o seu vídeo através do comando %svod." % (
-                    time.strftime("%H:%M:%S"),
+                    finish_time.strftime("%H:%M:%S"),
                     entry.weekly.game,
                     ctx.prefix,
                 )
@@ -194,7 +194,7 @@ class Weekly(commands.Cog, name="Semanais"):
                 raise ZRBRBotException("Não há uma semanal de %s em andamento." % game)
 
             # Submissions of VOD are not limited for now
-            #if datetime.now() >= weekly.submission_end:
+            # if datetime.now() >= weekly.submission_end:
             #    raise ZRBRBotException("Os envios para a semanal de %s foram encerradas." % weekly.game)
 
             author_id = ctx.author.id
@@ -431,6 +431,7 @@ class Weekly(commands.Cog, name="Semanais"):
             if weekly is None:
                 raise ZRBRBotException("Não há uma semanal de %s fechada." % game)
             self.db.reopen_weekly(session, weekly)
+            await ctx.message.reply("Semanal de %s reaberta com sucesso!" % game)
 
     @commands.command(
         name="weeklyupdate",
@@ -509,14 +510,14 @@ class Weekly(commands.Cog, name="Semanais"):
             if parameter == 'time':
                 converter = TimeConverter()
                 try:
-                    time = await converter.convert(ctx, value)
+                    finish_time = await converter.convert(ctx, value)
                 except:
                     raise ZRBRBotException("O tempo fornecido deve estar no formato '%s'." % converter.description_format)
 
                 if entry.status not in [EntryStatus.TIME_SUBMITTED, EntryStatus.DONE]:
                     raise ZRBRBotException("%s ainda não enviou seu tempo para a semanal de %s." % (player, game))
 
-                self.db.update_time(session, entry, time)
+                self.db.update_time(session, entry, finish_time)
 
             elif parameter == 'vod':
                 if entry.status is not EntryStatus.DONE:
@@ -525,7 +526,7 @@ class Weekly(commands.Cog, name="Semanais"):
                 self.db.update_vod(session, entry, value)
 
             else:
-                raise ZRBRBotException("Parâmetro desconhecido: %s." % (parametro))
+                raise ZRBRBotException("Parâmetro desconhecido: %s." % parametro)
 
             await ctx.message.reply("Entrada de %s para a semanal de %s alterada com sucesso!" % (player, game))
 
