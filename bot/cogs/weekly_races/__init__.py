@@ -5,9 +5,9 @@ import yaml
 from database import model
 from datatypes import Games, EntryStatus, WeeklyStatus
 
-from helpers import get_discord_name, time_to_timedelta, timedelta_to_str
-from bot.converters import GameConverter, TimeConverter, DatetimeConverter
+from util import get_discord_name, time_to_timedelta, timedelta_to_str
 from util.ImageHashGenerator import ImageHashGenerator
+from bot.converters import GameConverter, TimeConverter, DatetimeConverter
 from bot.exceptions import ZRBRBotException
 
 from . import embeds

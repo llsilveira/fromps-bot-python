@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
 
-from helpers import get_discord_name
+from util import get_discord_name
 from .exceptions import ZRBRBotException
 from .converters import TimeConverter, DatetimeConverter, GameConverter
 

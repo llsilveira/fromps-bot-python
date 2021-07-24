@@ -3,7 +3,7 @@ import yaml
 from PIL import Image
 
 from datatypes import Games
-from helpers import get_resource
+from util import get_resource
 
 
 class ImageHashGenerator:

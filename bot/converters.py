@@ -2,7 +2,8 @@ from discord.ext import commands
 from datetime import datetime
 
 from datatypes import Games
-from helpers.discord import remove_emojis
+from util import remove_emojis
+
 
 class DatetimeConverter(commands.Converter):
     def __init__(self, parse_format="%d/%m/%Y-%H:%M", description_format="dd/mm/aaaa-HH:MM"):
