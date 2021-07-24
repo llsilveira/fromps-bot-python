@@ -11,7 +11,7 @@ def seed_embed(ctx, weekly, instructions):
     description = description.format(signup_channel=signup_channel)
 
     embed = discord.Embed(
-        title="ZRBR Semanal - %s" % weekly.game,
+        title="RBR Semanal - %s" % weekly.game,
         colour=discord.Colour(weekly.game.color),
         description=description
     )
@@ -25,7 +25,7 @@ def seed_embed(ctx, weekly, instructions):
 
 def list_embed(weeklies):
     weeklies = sorted(weeklies, key=lambda v: 2 if v.submission_end <= datetime.now() else 1)
-    embed = discord.Embed(title="Semanais da ZRBR")
+    embed = discord.Embed(title="Semanais da Randomizer Brasil")
     if len(weeklies) > 0:
         codes = []
         games = []

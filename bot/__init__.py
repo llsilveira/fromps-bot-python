@@ -1,17 +1,17 @@
-from .ZRBRBot import ZRBRBot
+from .RBRBot import RBRBot
 from .exceptions import ZRBRBotException
 
 from .cogs.weekly_races import Weekly
 
 
 def create_bot(config, db):
-    bot = ZRBRBot(config)
+    bot = RBRBot(config)
     bot.add_cog(Weekly(bot, config, db))
     return bot
 
 
 __all__ = [
-    'ZRBRBot',
+    'RBRBot',
     'ZRBRBotException',
     'create_bot',
 ]

@@ -25,8 +25,8 @@ async def ping_on_error(user, ctx, error):
     await dm.send(msg)
 
 
-class ZRBRBot(commands.Bot):
-    class ZRBRHelpCommand(commands.DefaultHelpCommand):
+class RBRBot(commands.Bot):
+    class RBRHelpCommand(commands.DefaultHelpCommand):
         def __init__(self):
             super().__init__(
                 command_attrs={
@@ -50,7 +50,7 @@ class ZRBRBot(commands.Bot):
         super().__init__(
             command_prefix=config['command_prefix'],
             intents=intents,
-            help_command=ZRBRBot.ZRBRHelpCommand()
+            help_command=RBRBot.RBRHelpCommand()
         )
 
         self._config = config
