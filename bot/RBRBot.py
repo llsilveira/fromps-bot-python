@@ -87,9 +87,7 @@ class RBRBot(commands.Bot):
         if message.author.id == self.user.id or (
                 not isinstance(message.channel, discord.DMChannel) and message.channel not in self.signup_channels):
             return
-
-        async with message.channel.typing():
-            await self.process_commands(message)
+        await self.process_commands(message)
 
     async def invoke(self, ctx):
         message = ctx.message
@@ -117,7 +115,8 @@ class RBRBot(commands.Bot):
                 await message.author.send("O comando '%s' deve ser usado neste canal privado." % ctx.invoked_with)
                 return
 
-        await super().invoke(ctx)
+        async with message.channel.typing():
+            await super().invoke(ctx)
 
     async def on_command(self, ctx):
         await ctx.message.add_reaction(self.busy_emoji)
