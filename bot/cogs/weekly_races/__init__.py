@@ -8,7 +8,7 @@ from datatypes import Games, EntryStatus, WeeklyStatus
 from util import get_discord_name, time_to_timedelta, timedelta_to_str
 from util.ImageHashGenerator import ImageHashGenerator
 from bot.converters import GameConverter, TimeConverter, DatetimeConverter
-from bot.exceptions import ZRBRBotException
+from bot.exceptions import RBRBotException
 
 from . import embeds
 
@@ -92,10 +92,10 @@ class Weekly(commands.Cog, name="Semanais"):
         with self.db.Session() as session:
             weekly = self.db.get_open_weekly(session, game)
             if weekly is None:
-                raise ZRBRBotException("A semanal de %s não está aberta." % game)
+                raise RBRBotException("A semanal de %s não está aberta." % game)
 
             if datetime.now() >= weekly.submission_end:
-                raise ZRBRBotException("As inscrições para a semanal de %s foram encerradas." % game)
+                raise RBRBotException("As inscrições para a semanal de %s foram encerradas." % game)
 
             author = ctx.author
             entry = self.db.get_player_entry(session, weekly, author.id)
@@ -103,12 +103,12 @@ class Weekly(commands.Cog, name="Semanais"):
                 registered = self.db.get_registered_entry(session, author.id)
                 if registered is not None:
                     game = registered.weekly.game
-                    raise ZRBRBotException(
+                    raise RBRBotException(
                         "Você deve registrar o seu tempo ou desistir da semanal de %s antes de participar de outra. " % game
                     )
                 self.db.register_player(session, weekly, author.id, get_discord_name(author))
             elif entry.status != EntryStatus.REGISTERED:
-                raise ZRBRBotException(
+                raise RBRBotException(
                     "Você já participou da semanal de %s. Caso tenha concluído a seed mas ainda não enviou o seu VOD, você pode fazê-lo utilizando o comando %svod" % (game, ctx.prefix)
                 )
 
@@ -131,14 +131,14 @@ class Weekly(commands.Cog, name="Semanais"):
             author_id = ctx.author.id
             entry = self.db.get_registered_entry(session, author_id)
             if entry is None:
-                raise ZRBRBotException("Você já registrou seu tempo ou não está participando de uma semanal aberta.")
+                raise RBRBotException("Você já registrou seu tempo ou não está participando de uma semanal aberta.")
 
             # Submissions of time are not limited for now
             # if datetime.now() >= entry.weekly.submission_end:
-            #    raise ZRBRBotException("As submissões de tempo para a semanal de %s foram encerradas." % entry.weekly.game)
+            #    raise RBRBotException("As submissões de tempo para a semanal de %s foram encerradas." % entry.weekly.game)
 
             if len(ctx.message.attachments) != 1:
-                raise ZRBRBotException(
+                raise RBRBotException(
                     "Você deve enviar o print mostrando a tela final do jogo e o seu timer juntamente com este comando."
                 )
 
@@ -165,10 +165,10 @@ class Weekly(commands.Cog, name="Semanais"):
             author_id = ctx.author.id
             entry = self.db.get_registered_entry(session, author_id)
             if entry is None:
-                raise ZRBRBotException("Você já registrou seu tempo ou não está participando de uma semanal.")
+                raise RBRBotException("Você já registrou seu tempo ou não está participando de uma semanal.")
 
             if ok is None or str.lower(ok) != "ok":
-                raise ZRBRBotException(
+                raise RBRBotException(
                     "Confirme sua desistência da semanal de %s enviando o comando '%s%s ok' neste chat privado." % (entry.weekly.game, ctx.prefix, ctx.invoked_with)
                 )
 
@@ -191,23 +191,23 @@ class Weekly(commands.Cog, name="Semanais"):
         with self.db.Session() as session:
             weekly = self.db.get_open_weekly(session, game)
             if weekly is None:
-                raise ZRBRBotException("Não há uma semanal de %s em andamento." % game)
+                raise RBRBotException("Não há uma semanal de %s em andamento." % game)
 
             # Submissions of VOD are not limited for now
             # if datetime.now() >= weekly.submission_end:
-            #    raise ZRBRBotException("Os envios para a semanal de %s foram encerradas." % weekly.game)
+            #    raise RBRBotException("Os envios para a semanal de %s foram encerradas." % weekly.game)
 
             author_id = ctx.author.id
             entry = self.db.get_player_entry(session, weekly, author_id)
             if entry is None:
-                raise ZRBRBotException("Você ainda não solicitou a seed da semanal de %s." % game)
+                raise RBRBotException("Você ainda não solicitou a seed da semanal de %s." % game)
 
             if entry.status == EntryStatus.REGISTERED:
-                raise ZRBRBotException("Você deve submeter o seu tempo através do comando '%stime' antes de enviar o seu VOD." % ctx.prefix)
+                raise RBRBotException("Você deve submeter o seu tempo através do comando '%stime' antes de enviar o seu VOD." % ctx.prefix)
             elif entry.status == EntryStatus.DONE:
-                raise ZRBRBotException("Você já enviou o seu VOD para a semanal de %s." % game)
+                raise RBRBotException("Você já enviou o seu VOD para a semanal de %s." % game)
             elif entry.status == EntryStatus.DNF:
-                raise ZRBRBotException("Você não está mais participando desta semanal.")
+                raise RBRBotException("Você não está mais participando desta semanal.")
 
             self.db.submit_vod(session, entry, vod_url)
             await ctx.message.reply("VOD recebido com sucesso! Agradecemos a sua participação!")
@@ -226,15 +226,15 @@ class Weekly(commands.Cog, name="Semanais"):
         with self.db.Session() as session:
             weekly = self.db.get_open_weekly(session, game)
             if weekly is None:
-                raise ZRBRBotException("Não há uma semanal de %s em andamento." % game)
+                raise RBRBotException("Não há uma semanal de %s em andamento." % game)
 
             author_id = ctx.author.id
             entry = self.db.get_player_entry(session, weekly, author_id)
             if entry is None:
-                raise ZRBRBotException("Você ainda não solicitou a seed da semanal de %s." % game)
+                raise RBRBotException("Você ainda não solicitou a seed da semanal de %s." % game)
 
             if comment is not None and len(comment) > 250:
-                raise ZRBRBotException("Seu comentário deve ter no máximo 250 caracteres.")
+                raise RBRBotException("Seu comentário deve ter no máximo 250 caracteres.")
 
             self.db.submit_comment(session, entry, comment)
             if comment is None:
@@ -258,7 +258,7 @@ class Weekly(commands.Cog, name="Semanais"):
         with self.db.Session() as session:
             weekly = self.db.get_open_weekly(session, game)
             if weekly is None:
-                raise ZRBRBotException("Não há uma semanal de %s em andamento." % game)
+                raise RBRBotException("Não há uma semanal de %s em andamento." % game)
 
             entries = sorted(weekly.entries, key=lambda e: e.finish_time if e.finish_time is not None else time(23, 59))
 
@@ -342,7 +342,7 @@ class Weekly(commands.Cog, name="Semanais"):
         with self.db.Session() as session:
             weekly = self.db.get_open_weekly(session, game)
             if weekly is not None:
-                raise ZRBRBotException("Há uma semanal aberta para %s. Feche-a primeiro antes de criar uma nova." % game)
+                raise RBRBotException("Há uma semanal aberta para %s. Feche-a primeiro antes de criar uma nova." % game)
 
             if game in [Games.ALTTPR, Games.OOTR]:
                 hash_str = await self.genhash(ctx, game, hash_str)
@@ -404,7 +404,7 @@ class Weekly(commands.Cog, name="Semanais"):
         with self.db.Session() as session:
             weekly = self.db.get_open_weekly(session, game)
             if weekly is None:
-                raise ZRBRBotException("A semanal de %s não está aberta." % game)
+                raise RBRBotException("A semanal de %s não está aberta." % game)
 
             self.db.close_weekly(session, weekly)
             await ctx.message.reply("Semanal de %s fechada com sucesso!" % game)
@@ -426,10 +426,10 @@ class Weekly(commands.Cog, name="Semanais"):
         with self.db.Session() as session:
             weekly = self.db.get_open_weekly(session, game)
             if weekly is not None:
-                raise ZRBRBotException("A semanal de %s não está fechada." % game)
+                raise RBRBotException("A semanal de %s não está fechada." % game)
             weekly = self.db.get_last_closed_weekly(session, game)
             if weekly is None:
-                raise ZRBRBotException("Não há uma semanal de %s fechada." % game)
+                raise RBRBotException("Não há uma semanal de %s fechada." % game)
             self.db.reopen_weekly(session, weekly)
             await ctx.message.reply("Semanal de %s reaberta com sucesso!" % game)
 
@@ -460,10 +460,10 @@ class Weekly(commands.Cog, name="Semanais"):
         with self.db.Session() as session:
             weekly = self.db.get_open_weekly(session, game)
             if weekly is None:
-                raise ZRBRBotException("Não há uma semanal aberta para %s." % game)
+                raise RBRBotException("Não há uma semanal aberta para %s." % game)
 
             if len(weekly.entries) > 0 and weekly.seed_url != seed_url:
-                raise ZRBRBotException("Existem entradas registradas para esta semanal, portanto não é possível alterar a URL da seed.")
+                raise RBRBotException("Existem entradas registradas para esta semanal, portanto não é possível alterar a URL da seed.")
 
             if game in [Games.ALTTPR, Games.OOTR]:
                 hash_str = await self.genhash(ctx, game, hash_str)
@@ -498,35 +498,35 @@ class Weekly(commands.Cog, name="Semanais"):
         with self.db.Session() as session:
             weekly = self.db.get_open_weekly(session, game)
             if weekly is None:
-                raise ZRBRBotException("Não há uma semanal de %s em andamento." % game)
+                raise RBRBotException("Não há uma semanal de %s em andamento." % game)
 
             entry = self.db.get_player_entry_by_name(session, weekly, jogador)
             if entry is None:
-                raise ZRBRBotException("%s não está participando da semanal de %s." % (player, game))
+                raise RBRBotException("%s não está participando da semanal de %s." % (player, game))
 
             if entry.status == EntryStatus.DNF:
-                raise ZRBRBotException("%s não está mais participando da semanal de %s." % (player, game))
+                raise RBRBotException("%s não está mais participando da semanal de %s." % (player, game))
 
             if parameter == 'time':
                 converter = TimeConverter()
                 try:
                     finish_time = await converter.convert(ctx, value)
                 except:
-                    raise ZRBRBotException("O tempo fornecido deve estar no formato '%s'." % converter.description_format)
+                    raise RBRBotException("O tempo fornecido deve estar no formato '%s'." % converter.description_format)
 
                 if entry.status not in [EntryStatus.TIME_SUBMITTED, EntryStatus.DONE]:
-                    raise ZRBRBotException("%s ainda não enviou seu tempo para a semanal de %s." % (player, game))
+                    raise RBRBotException("%s ainda não enviou seu tempo para a semanal de %s." % (player, game))
 
                 self.db.update_time(session, entry, finish_time)
 
             elif parameter == 'vod':
                 if entry.status is not EntryStatus.DONE:
-                    raise ZRBRBotException("%s ainda não enviou seu VOD para a semanal de %s." % (player, game))
+                    raise RBRBotException("%s ainda não enviou seu VOD para a semanal de %s." % (player, game))
 
                 self.db.update_vod(session, entry, value)
 
             else:
-                raise ZRBRBotException("Parâmetro desconhecido: %s." % parametro)
+                raise RBRBotException("Parâmetro desconhecido: %s." % parametro)
 
             await ctx.message.reply("Entrada de %s para a semanal de %s alterada com sucesso!" % (player, game))
 
@@ -534,12 +534,12 @@ class Weekly(commands.Cog, name="Semanais"):
         try:
             img_bytes = self.img_hash_generator.generate(game, hash_str)
         except ValueError as e:
-            raise ZRBRBotException(str(e))
+            raise RBRBotException(str(e))
 
         with io.BytesIO(img_bytes) as img:
             message = await ctx.reply("", file=File(img, "hash.png"))
             if len(message.attachments) != 1:
-                raise ZRBRBotException("Erro ao enviar a imagem pelo Discord.")
+                raise RBRBotException("Erro ao enviar a imagem pelo Discord.")
             return message.attachments[0].url
 
     def _check_monitor(self, user, game=None):
@@ -548,9 +548,9 @@ class Weekly(commands.Cog, name="Semanais"):
         if game is not None:
             if game in self.monitors.keys() and user_name in self.monitors[game]:
                 return
-            raise ZRBRBotException("Você não é monitor de %s." % game)
+            raise RBRBotException("Você não é monitor de %s." % game)
 
         for monitor_list in self.monitors.values():
             if user_name in monitor_list:
                 return
-        raise ZRBRBotException("Este comando deve ser executado apenas por monitores.")
+        raise RBRBotException("Este comando deve ser executado apenas por monitores.")

@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 
 from util import get_discord_name
-from .exceptions import ZRBRBotException
+from .exceptions import RBRBotException
 from .converters import TimeConverter, DatetimeConverter, GameConverter
 
 import logging
@@ -138,7 +138,7 @@ class RBRBot(commands.Bot):
                 user = await self.fetch_user(self.ping_on_error)
                 await ping_on_error(user, ctx, error)
 
-        if isinstance(error, commands.errors.CommandInvokeError) and isinstance(error.original, ZRBRBotException):
+        if isinstance(error, commands.errors.CommandInvokeError) and isinstance(error.original, RBRBotException):
             await ctx.reply(error.original)
 
         elif isinstance(error, commands.MissingRequiredArgument):

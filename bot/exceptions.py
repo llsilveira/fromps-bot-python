@@ -1,2 +1,2 @@
-class ZRBRBotException(Exception):
+class RBRBotException(Exception):
     pass
