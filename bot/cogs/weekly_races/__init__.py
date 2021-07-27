@@ -267,15 +267,23 @@ class Weekly(commands.Cog, name="Semanais"):
                 for e in entries:
 
                     user = self.bot.get_user(e.discord_id)
+                    if user is None:
+                        try:
+                            user = await self.bot.fetch_user(e.discord_id)
+                        except Exception:
+                            pass
                     nicknames = []
                     for guild in self.bot.guilds:
-                        member = guild.get_member(user.id)
+                        member = guild.get_member(e.discord_id)
                         if member is not None:
                             name = member.display_name
                             if user.name != name and name not in nicknames:
                                 nicknames.append(name)
 
-                    name = get_discord_name(user)
+                    if user is None:
+                        name = "Usuário Desconhecido"
+                    else:
+                        name = get_discord_name(user)
                     if len(nicknames) > 0:
                         name += " (Aka: {})".format(", ".join(nicknames))
 
