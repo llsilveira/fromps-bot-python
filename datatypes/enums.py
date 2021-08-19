@@ -39,6 +39,11 @@ class Games(enum.Enum):
         ["sm", "smr", "metroid3", "m3", "m3r"],
         0x127C6A,
     )
+    HKR = (
+        "Hollow Knight Randomizer",
+        ["hk", "hkr"],
+        0xCCCCCC,
+    )
 
     def __init__(self, str, keys, color):
         self.str = str
