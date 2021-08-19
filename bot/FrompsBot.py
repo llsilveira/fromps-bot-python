@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 
 from util import get_discord_name
-from .exceptions import RBRBotException
+from .exceptions import FrompsBotException
 from .converters import TimeConverter, DatetimeConverter, GameConverter
 
 import logging
@@ -25,8 +25,8 @@ async def ping_on_error(user, ctx, error):
     await dm.send(msg)
 
 
-class RBRBot(commands.Bot):
-    class RBRHelpCommand(commands.DefaultHelpCommand):
+class FrompsBot(commands.Bot):
+    class FrompsBotHelpCommand(commands.DefaultHelpCommand):
         def __init__(self):
             super().__init__(
                 command_attrs={
@@ -50,7 +50,7 @@ class RBRBot(commands.Bot):
         super().__init__(
             command_prefix=config['command_prefix'],
             intents=intents,
-            help_command=RBRBot.RBRHelpCommand()
+            help_command=FrompsBot.FrompsBotHelpCommand()
         )
 
         self._config = config
@@ -137,7 +137,7 @@ class RBRBot(commands.Bot):
                 user = await self.fetch_user(self.ping_on_error)
                 await ping_on_error(user, ctx, error)
 
-        if isinstance(error, commands.errors.CommandInvokeError) and isinstance(error.original, RBRBotException):
+        if isinstance(error, commands.errors.CommandInvokeError) and isinstance(error.original, FrompsBotException):
             await ctx.reply(error.original)
 
         elif isinstance(error, commands.MissingRequiredArgument):

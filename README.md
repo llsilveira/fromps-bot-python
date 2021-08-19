@@ -1,4 +1,5 @@
-# zrbr-seedbot
-Discord bot to manage rando seed for the Zelda Randomizer Brazil server
+# fromps-bot
+
+Discord bot to run weekly races organized by Randomizer Brasil 
 
 Install deps with 'pip3 install -r requirements.txt' before running

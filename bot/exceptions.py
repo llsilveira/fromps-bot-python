@@ -1,2 +1,2 @@
-class RBRBotException(Exception):
+class FrompsBotException(Exception):
     pass
