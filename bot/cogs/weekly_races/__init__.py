@@ -543,14 +543,12 @@ class Weekly(commands.Cog, name="Semanais"):
             return message.attachments[0].url
 
     def _check_monitor(self, user, game=None):
-        user_name = get_discord_name(user)
-
         if game is not None:
-            if game in self.monitors.keys() and user_name in self.monitors[game]:
+            if game in self.monitors.keys() and user.id in self.monitors[game]:
                 return
             raise FrompsBotException("Você não é monitor de %s." % game)
 
         for monitor_list in self.monitors.values():
-            if user_name in monitor_list:
+            if user.id in monitor_list:
                 return
         raise FrompsBotException("Este comando deve ser executado apenas por monitores.")
