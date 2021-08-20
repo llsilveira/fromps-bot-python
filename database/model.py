@@ -1,5 +1,5 @@
 from sqlalchemy.orm import declarative_base, relationship
-from sqlalchemy import Column, Integer, String, Time, DateTime, Enum, ForeignKey
+from sqlalchemy import Column, Integer, BigInteger, String, Time, DateTime, Enum, ForeignKey
 from datetime import datetime
 
 from datatypes import Games, EntryStatus, WeeklyStatus
@@ -29,7 +29,7 @@ class PlayerEntry(Base):
     __tablename__ = 'player_entries'
 
     weekly_id = Column('weekly_id', ForeignKey('weeklies.id'), primary_key=True)
-    discord_id = Column(Integer, primary_key=True)
+    discord_id = Column(BigInteger, primary_key=True)
     discord_name = Column(String, nullable=False)
     status = Column(Enum(EntryStatus, native_enum=False, validate_strings=True, length=20), nullable=False)
     finish_time = Column(Time)

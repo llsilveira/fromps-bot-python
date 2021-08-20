@@ -38,7 +38,7 @@ def upgrade():
         op.create_table(
             'player_entries',
             sa.Column('weekly_id', sa.Integer(), nullable=False),
-            sa.Column('discord_id', sa.Integer(), nullable=False),
+            sa.Column('discord_id', sa.BigInteger(), nullable=False),
             sa.Column('discord_name', sa.String(), nullable=False),
             sa.Column('status', sa.Enum('REGISTERED', 'TIME_SUBMITTED', 'DONE', 'DNF', name='entrystatus', native_enum=False, length=20), nullable=False),
             sa.Column('finish_time', sa.Time(), nullable=True),
