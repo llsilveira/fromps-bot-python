@@ -1,13 +1,20 @@
 import discord
 import re
 from datetime import datetime
+from datatypes import Games
 
 
 def seed_embed(ctx, weekly, instructions):
     signup_channel = "semanais-seed" if isinstance(ctx.message.channel, discord.DMChannel) else ctx.message.channel.name
     game = weekly.game
     description = instructions['ALL'] + "\n" + instructions[game]
-    description += "\n**Seed:** " + weekly.seed_url + "\n\n**Código de Verificação:** "
+
+    #TODO: Set this with the game
+    verification_text = "Código de Verificação"
+    if game == Games.HKR:
+        verification_text = "Item de Fury of the Fallen"
+
+    description += "\n**Seed:** " + weekly.seed_url + "\n\n**"+ verification_text +":** "
     description = description.format(signup_channel=signup_channel)
 
     embed = discord.Embed(
