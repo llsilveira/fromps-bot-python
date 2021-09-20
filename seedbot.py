@@ -11,7 +11,7 @@ def main():
     logger = logging.getLogger(__name__)
 
     db = Database(**cfg['database'])
-    bot = create_bot(cfg['bot'], db)
+    bot = create_bot(db, cfg)
 
     @bot.listen()
     async def on_ready():

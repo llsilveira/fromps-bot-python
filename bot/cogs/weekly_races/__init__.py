@@ -39,14 +39,14 @@ def log(f):
 
 
 class Weekly(commands.Cog, name="Semanais"):
-    def __init__(self, bot, config, database):
+    def __init__(self, bot, database, *, monitors, instructions_file):
         self.bot = bot
         self.db = database
-        self.monitors = {Games[key]: monitor for (key, monitor) in config['monitors'].items()}
+        self.monitors = {Games[key]: monitor for (key, monitor) in monitors.items()}
         self.img_hash_generator = ImageHashGenerator()
 
         # Load instructions file
-        with open(config['instructions_file'], 'r') as instructions_file:
+        with open(instructions_file, 'r') as instructions_file:
             try:
                 instructions = yaml.safe_load(instructions_file)
             except Exception as e:

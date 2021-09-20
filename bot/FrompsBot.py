@@ -43,32 +43,41 @@ class FrompsBot(commands.Bot):
             return "Envie '{0}{1} comando' para mais informações sobre um comando.".format(self.clean_prefix,
                                                                                            command_name)
 
-    def __init__(self, config):
+    def __init__(
+            self,
+            token,
+            channels,
+            *,
+            cleanup_signup_channels=False,
+            ping_on_error=False,
+            busy_emoji='⌚',
+            success_emoji='✅',
+            error_emoji='❌',
+            **kwargs
+    ):
         intents = discord.Intents.default()
         intents.members = True
 
         super().__init__(
-            command_prefix=config['command_prefix'],
             intents=intents,
-            help_command=FrompsBot.FrompsBotHelpCommand()
+            help_command=FrompsBot.FrompsBotHelpCommand(),
+            **kwargs
         )
 
-        self._config = config
-
-        self.token = config.get('token')
+        self.token = token
+        self.channels = channels
 
         self.signup_channels = []
-        self.cleanup_signup_channels = config.get('cleanup_signup_channels', False)
+        self.cleanup_signup_channels = cleanup_signup_channels
+        self.ping_on_error = ping_on_error
 
-        self.ping_on_error = config.get('ping_on_error', False)
-
-        self.busy_emoji = config.get('busy_emoji', '⌚')
-        self.success_emoji = config.get('success_emoji', '✅')
-        self.error_emoji = config.get('error_emoji', '❌')
+        self.busy_emoji = busy_emoji
+        self.success_emoji = success_emoji
+        self.error_emoji = error_emoji
 
     async def on_ready(self):
         try:
-            channels = self._config.get('channels')
+            channels = self.channels
             for guild_id in channels:
                 guild = discord.utils.find(lambda guild: guild.id == guild_id, self.guilds)
                 if guild is None:
