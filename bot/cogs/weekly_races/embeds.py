@@ -42,13 +42,14 @@ def list_embed(weeklies):
             games.append(str(w.game))
 
             if w.submission_end > datetime.now():
-                times.append(w.submission_end.strftime("%d/%m/%Y %H:%M"))
+                time = int(w.submission_end.timestamp())
+                times.append(f"<t:{time}>")
             else:
                 times.append("ENCERRADO")
 
         embed.add_field(name="Código", value="\n".join(codes))
         embed.add_field(name="Jogo", value="\n".join(games))
-        embed.add_field(name="Inscrições até", value="\n".join(times))
+        embed.add_field(name="Inscrições até (hora local)", value="\n".join(times))
     else:
         embed.description = "Nenhuma semanal aberta no momento."
 
