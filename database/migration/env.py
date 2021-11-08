@@ -9,9 +9,15 @@ import database.model
 from util.config import load_conf
 from database import Database
 
-cfg = load_conf()
+cfg = load_conf()['database']
 url = Database.build_database_url(
-    **cfg['database']
+    dialect=cfg.get('dialect'),
+    dbapi=cfg.get('dbapi', ""),
+    user=cfg.get('user', ""),
+    password=cfg.get('password', ""),
+    host=cfg.get('host', ""),
+    port=cfg.get('port', ""),
+    dbpath=cfg.get('dbpath', "")
 )
 
 

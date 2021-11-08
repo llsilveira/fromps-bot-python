@@ -27,8 +27,16 @@ def upgrade():
         op.create_table(
             'weeklies',
             sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
-            sa.Column('game', sa.Enum('ALTTPR', 'OOTR', 'MMR', 'PKMN_CRYSTAL', 'SMR', name='games', native_enum=False, length=20), nullable=False),
-            sa.Column('status', sa.Enum('OPEN', 'CLOSED', name='weeklystatus', native_enum=False, length=20), nullable=False),
+            sa.Column(
+                'game',
+                sa.Enum('ALTTPR', 'OOTR', 'MMR', 'PKMN_CRYSTAL', 'SMR', name='games', native_enum=False, length=20),
+                nullable=False
+            ),
+            sa.Column(
+                'status',
+                sa.Enum('OPEN', 'CLOSED', name='weeklystatus', native_enum=False, length=20),
+                nullable=False
+            ),
             sa.Column('seed_url', sa.String(), nullable=False),
             sa.Column('seed_hash', sa.String(), nullable=True),
             sa.Column('created_at', sa.DateTime(), nullable=False),
@@ -40,7 +48,13 @@ def upgrade():
             sa.Column('weekly_id', sa.Integer(), nullable=False),
             sa.Column('discord_id', sa.BigInteger(), nullable=False),
             sa.Column('discord_name', sa.String(), nullable=False),
-            sa.Column('status', sa.Enum('REGISTERED', 'TIME_SUBMITTED', 'DONE', 'DNF', name='entrystatus', native_enum=False, length=20), nullable=False),
+            sa.Column(
+                'status',
+                sa.Enum(
+                    'REGISTERED', 'TIME_SUBMITTED', 'DONE', 'DNF', name='entrystatus', native_enum=False, length=20
+                ),
+                nullable=False
+            ),
             sa.Column('finish_time', sa.Time(), nullable=True),
             sa.Column('print_url', sa.String(), nullable=True),
             sa.Column('vod_url', sa.String(), nullable=True),

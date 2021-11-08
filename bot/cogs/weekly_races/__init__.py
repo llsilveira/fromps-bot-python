@@ -104,12 +104,14 @@ class Weekly(commands.Cog, name="Semanais"):
                 if registered is not None:
                     game = registered.weekly.game
                     raise FrompsBotException(
-                        "Você deve registrar o seu tempo ou desistir da semanal de %s antes de participar de outra. " % game
+                        "Você deve registrar o seu tempo ou desistir da semanal de %s"
+                        " antes de participar de outra. " % game
                     )
                 self.db.register_player(session, weekly, author.id, get_discord_name(author))
             elif entry.status != EntryStatus.REGISTERED:
                 raise FrompsBotException(
-                    "Você já participou da semanal de %s. Caso tenha concluído a seed mas ainda não enviou o seu VOD, você pode fazê-lo utilizando o comando %svod" % (game, ctx.prefix)
+                    "Você já participou da semanal de %s. Caso tenha concluído a seed mas ainda não enviou o seu VOD,"
+                    " você pode fazê-lo utilizando o comando %svod" % (game, ctx.prefix)
                 )
 
             embed = embeds.seed_embed(ctx, weekly, self.instructions)
@@ -118,7 +120,9 @@ class Weekly(commands.Cog, name="Semanais"):
     @commands.command(
         name="time",
         aliases=['tempo'],
-        help="Enviar o tempo final da seed jogada.\nO tempo deve estar no formato 'H:MM:SS'.\nVocê deve anexar, na mesma mensagem, o print com a tela do jogo e o seu timer.\nEste comando deve ser utilizado APENAS NO PRIVADO.",
+        help="Enviar o tempo final da seed jogada.\nO tempo deve estar no formato 'H:MM:SS'."
+             "\nVocê deve anexar, na mesma mensagem, o print com a tela do jogo e o seu timer."
+             "\nEste comando deve ser utilizado APENAS NO PRIVADO.",
         brief="*NO PRIVADO* Enviar o tempo final da seed jogada.",
         ignore_extra=False,
         dm_only=True
@@ -132,10 +136,6 @@ class Weekly(commands.Cog, name="Semanais"):
             entry = self.db.get_registered_entry(session, author_id)
             if entry is None:
                 raise FrompsBotException("Você já registrou seu tempo ou não está participando de uma semanal aberta.")
-
-            # Submissions of time are not limited for now
-            # if datetime.now() >= entry.weekly.submission_end:
-            #    raise FrompsBotException("As submissões de tempo para a semanal de %s foram encerradas." % entry.weekly.game)
 
             if len(ctx.message.attachments) != 1:
                 raise FrompsBotException(
@@ -169,7 +169,8 @@ class Weekly(commands.Cog, name="Semanais"):
 
             if ok is None or str.lower(ok) != "ok":
                 raise FrompsBotException(
-                    "Confirme sua desistência da semanal de %s enviando o comando '%s%s ok' neste chat privado." % (entry.weekly.game, ctx.prefix, ctx.invoked_with)
+                    "Confirme sua desistência da semanal de %s enviando o comando '%s%s ok' neste chat privado." %
+                    (entry.weekly.game, ctx.prefix, ctx.invoked_with)
                 )
 
             self.db.forfeit_player(session, entry.weekly, author_id)
@@ -178,7 +179,9 @@ class Weekly(commands.Cog, name="Semanais"):
     @commands.command(
         name="vod",
         aliases=['video', 'gravacao'],
-        help=" Enviar o VOD da seed jogada.\nVocê deve informar o jogo para o qual está enviando do seu VOD e a URL. O código do jogo é informado na lista de semanais abertas.\nEste comando deve ser utilizado APENAS NO PRIVADO.",
+        help="Enviar o VOD da seed jogada.\nVocê deve informar o jogo para o qual está enviando do seu VOD e a URL."
+             " O código do jogo é informado na lista de semanais abertas."
+             "\nEste comando deve ser utilizado APENAS NO PRIVADO.",
         brief="*NO PRIVADO* Enviar o VOD da seed jogada",
         ignore_extra=False,
         dm_only=True
@@ -193,17 +196,15 @@ class Weekly(commands.Cog, name="Semanais"):
             if weekly is None:
                 raise FrompsBotException("Não há uma semanal de %s em andamento." % game)
 
-            # Submissions of VOD are not limited for now
-            # if datetime.now() >= weekly.submission_end:
-            #    raise FrompsBotException("Os envios para a semanal de %s foram encerradas." % weekly.game)
-
             author_id = ctx.author.id
             entry = self.db.get_player_entry(session, weekly, author_id)
             if entry is None:
                 raise FrompsBotException("Você ainda não solicitou a seed da semanal de %s." % game)
 
             if entry.status == EntryStatus.REGISTERED:
-                raise FrompsBotException("Você deve submeter o seu tempo através do comando '%stime' antes de enviar o seu VOD." % ctx.prefix)
+                raise FrompsBotException(
+                    "Você deve submeter o seu tempo através do comando '%stime' antes de enviar o seu VOD." % ctx.prefix
+                )
             elif entry.status == EntryStatus.DONE:
                 raise FrompsBotException("Você já enviou o seu VOD para a semanal de %s." % game)
             elif entry.status == EntryStatus.DNF:
@@ -215,7 +216,8 @@ class Weekly(commands.Cog, name="Semanais"):
     @commands.command(
         name="comment",
         aliases=['comentario'],
-        help="Enviar um comentário de até 250 caracteres sobre a participação na semanal.\nEste comando deve ser utilizado APENAS NO PRIVADO.",
+        help="Enviar um comentário de até 250 caracteres sobre a participação na semanal."
+             "\nEste comando deve ser utilizado APENAS NO PRIVADO.",
         brief="*NO PRIVADO* Enviar um comentário de até 250 caracteres sobre a participação na semanal.",
         dm_only=True
     )
@@ -252,7 +254,9 @@ class Weekly(commands.Cog, name="Semanais"):
     @log
     async def entries(self, ctx, codigo_do_jogo: GameConverter(), verbose: str = ""):
         game = codigo_do_jogo
-        verbose = str.lower(verbose) in ['t', 'true', 'y', 'yes', 's', 'sim', '1', 'on', 'v', '-v', 'verbose', '--verbose']
+        verbose = str.lower(verbose) in [
+            't', 'true', 'y', 'yes', 's', 'sim', '1', 'on', 'v', '-v', 'verbose', '--verbose'
+        ]
         self._check_monitor(ctx.author, game)
 
         with self.db.Session() as session:
@@ -305,7 +309,10 @@ class Weekly(commands.Cog, name="Semanais"):
                         if e.status in [EntryStatus.TIME_SUBMITTED, EntryStatus.DONE]:
                             reply_entry += "Envio do tempo: %s (%s)\n" % (
                                 e.time_submitted_at.strftime(formatstr),
-                                timedelta_to_str(e.time_submitted_at - e.registered_at - time_to_timedelta(e.finish_time)))
+                                timedelta_to_str(
+                                    e.time_submitted_at - e.registered_at - time_to_timedelta(e.finish_time)
+                                )
+                            )
                             if e.status is EntryStatus.DONE:
                                 reply_entry += "Envio do VOD: %s\n" % e.vod_submitted_at.strftime(formatstr)
 
@@ -326,7 +333,10 @@ class Weekly(commands.Cog, name="Semanais"):
     @commands.command(
         name="weeklycreate",
         aliases=['criarsemanal'],
-        help="Criar uma nova semanal.\nVocê não poderá criar uma semanal para um jogo que ainda não foi fechado.\nSe o código de verificação fornecido for uma URL, esta será tratada como uma imagem.\nSe algum parâmetro contiver espaços, ele deverá estar \"entre aspas\".\nEste comando deve ser utilizado APENAS NO PRIVADO.",
+        help="Criar uma nova semanal.\nVocê não poderá criar uma semanal para um jogo que ainda não foi fechado."
+             "\nSe o código de verificação fornecido for uma URL, esta será tratada como uma imagem."
+             "\nSe algum parâmetro contiver espaços, ele deverá estar \"entre aspas\"."
+             "\nEste comando deve ser utilizado APENAS NO PRIVADO.",
         brief="*NO PRIVADO* Criar uma nova semanal.",
         ignore_extra=False,
         hidden=True,
@@ -350,7 +360,9 @@ class Weekly(commands.Cog, name="Semanais"):
         with self.db.Session() as session:
             weekly = self.db.get_open_weekly(session, game)
             if weekly is not None:
-                raise FrompsBotException("Há uma semanal aberta para %s. Feche-a primeiro antes de criar uma nova." % game)
+                raise FrompsBotException(
+                    "Há uma semanal aberta para %s. Feche-a primeiro antes de criar uma nova." % game
+                )
 
             if game in [Games.ALTTPR, Games.OOTR]:
                 hash_str = await self.genhash(ctx, game, hash_str)
@@ -398,7 +410,10 @@ class Weekly(commands.Cog, name="Semanais"):
     @commands.command(
         name="weeklyclose",
         aliases=['encerrarsemanal'],
-        help="Encerra completamente uma semanal.\nExecute este comando apenas quando a semanal estiver completamente concluída, pois não será mais possível listar as entradas após isto.\nAo executar este comando, todos os jogadores que não tiverem concluído completamente sua participação (enviando o tempo e o VOD), receberão o status 'DNF'\nEste comando deve ser utilizado APENAS NO PRIVADO.",
+        help="Encerra completamente uma semanal.\nExecute este comando apenas quando a semanal estiver completamente"
+             " concluída, pois não será mais possível listar as entradas após isto.\nAo executar este comando, todos"
+             " os jogadores que não tiverem concluído completamente sua participação (enviando o tempo e o VOD),"
+             " receberão o status 'DNF'\nEste comando deve ser utilizado APENAS NO PRIVADO.",
         brief="*NO PRIVADO* Encerra completamente uma semanal.",
         ignore_extra=False,
         hidden=True,
@@ -471,7 +486,9 @@ class Weekly(commands.Cog, name="Semanais"):
                 raise FrompsBotException("Não há uma semanal aberta para %s." % game)
 
             if len(weekly.entries) > 0 and weekly.seed_url != seed_url:
-                raise FrompsBotException("Existem entradas registradas para esta semanal, portanto não é possível alterar a URL da seed.")
+                raise FrompsBotException(
+                    "Existem entradas registradas para esta semanal, portanto não é possível alterar a URL da seed."
+                )
 
             if game in [Games.ALTTPR, Games.OOTR]:
                 hash_str = await self.genhash(ctx, game, hash_str)
@@ -519,8 +536,10 @@ class Weekly(commands.Cog, name="Semanais"):
                 converter = TimeConverter()
                 try:
                     finish_time = await converter.convert(ctx, value)
-                except:
-                    raise FrompsBotException("O tempo fornecido deve estar no formato '%s'." % converter.description_format)
+                except Exception:
+                    raise FrompsBotException(
+                        "O tempo fornecido deve estar no formato '%s'." % converter.description_format
+                    )
 
                 if entry.status not in [EntryStatus.TIME_SUBMITTED, EntryStatus.DONE]:
                     raise FrompsBotException("%s ainda não enviou seu tempo para a semanal de %s." % (player, game))

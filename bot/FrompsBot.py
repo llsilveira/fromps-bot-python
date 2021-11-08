@@ -158,7 +158,8 @@ class FrompsBot(commands.Bot):
 
         elif isinstance(error, commands.TooManyArguments):
             await ctx.reply(
-                "Você deve fornecer apenas os parâmetros requeridos pelo comando. Consulte o comando 'ajuda' para mais informações."
+                "Você deve fornecer apenas os parâmetros requeridos pelo comando."
+                " Consulte o comando 'ajuda' para mais informações."
             )
 
         elif isinstance(error, commands.errors.ConversionError):
