@@ -108,6 +108,8 @@ class Weekly(commands.Cog, name="Semanais"):
                         " antes de participar de outra. " % game
                     )
                 self.db.register_player(session, weekly, author.id, get_discord_name(author))
+                session.commit()
+
             elif entry.status != EntryStatus.REGISTERED:
                 raise FrompsBotException(
                     "Você já participou da semanal de %s. Caso tenha concluído a seed mas ainda não enviou o seu VOD,"
@@ -143,6 +145,8 @@ class Weekly(commands.Cog, name="Semanais"):
                 )
 
             self.db.submit_time(session, entry, finish_time, ctx.message.attachments[0].url)
+            session.commit()
+
             await ctx.message.reply(
                 "Seu tempo de %s na semanal de %s foi registrado! "
                 "Não esqueça de enviar o seu vídeo através do comando %svod." % (
@@ -174,6 +178,8 @@ class Weekly(commands.Cog, name="Semanais"):
                 )
 
             self.db.forfeit_player(session, entry.weekly, author_id)
+            session.commit()
+
             await ctx.message.reply("Você não está mais participando da semanal de %s." % entry.weekly.game)
 
     @commands.command(
@@ -211,6 +217,8 @@ class Weekly(commands.Cog, name="Semanais"):
                 raise FrompsBotException("Você não está mais participando desta semanal.")
 
             self.db.submit_vod(session, entry, vod_url)
+            session.commit()
+
             await ctx.message.reply("VOD recebido com sucesso! Agradecemos a sua participação!")
 
     @commands.command(
@@ -239,6 +247,8 @@ class Weekly(commands.Cog, name="Semanais"):
                 raise FrompsBotException("Seu comentário deve ter no máximo 250 caracteres.")
 
             self.db.submit_comment(session, entry, comment)
+            session.commit()
+
             if comment is None:
                 await ctx.message.reply("Comentário removido com sucesso!")
             else:
@@ -430,6 +440,8 @@ class Weekly(commands.Cog, name="Semanais"):
                 raise FrompsBotException("A semanal de %s não está aberta." % game)
 
             self.db.close_weekly(session, weekly)
+            session.commit()
+
             await ctx.message.reply("Semanal de %s fechada com sucesso!" % game)
 
     @commands.command(
@@ -454,6 +466,8 @@ class Weekly(commands.Cog, name="Semanais"):
             if weekly is None:
                 raise FrompsBotException("Não há uma semanal de %s fechada." % game)
             self.db.reopen_weekly(session, weekly)
+            session.commit()
+
             await ctx.message.reply("Semanal de %s reaberta com sucesso!" % game)
 
     @commands.command(
@@ -494,6 +508,8 @@ class Weekly(commands.Cog, name="Semanais"):
                 hash_str = await self.genhash(ctx, game, hash_str)
 
             self.db.update_weekly(session, weekly, seed_url, hash_str, submission_end)
+            session.commit()
+
             await ctx.message.reply("Semanal de %s atualizada com sucesso!" % game)
 
     @commands.command(
@@ -555,6 +571,7 @@ class Weekly(commands.Cog, name="Semanais"):
             else:
                 raise FrompsBotException("Parâmetro desconhecido: %s." % parametro)
 
+            session.commit()
             await ctx.message.reply("Entrada de %s para a semanal de %s alterada com sucesso!" % (player, game))
 
     async def genhash(self, ctx, game, hash_str):

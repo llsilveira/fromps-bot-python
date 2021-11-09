@@ -66,7 +66,6 @@ class Database:
                 "Attempt to reopen a weekly while another one for the same game is open"
             )
         weekly.status = WeeklyStatus.OPEN
-        session.commit()
 
     def list_open_weeklies(self, session):
         return session.execute(
@@ -92,14 +91,12 @@ class Database:
             submission_end=submission_end
         )
         session.add(weekly)
-        session.commit()
         return weekly
 
     def update_weekly(self, session, weekly, seed_url, seed_hash, submission_end):
         weekly.seed_url = seed_url
         weekly.seed_hash = seed_hash
         weekly.submission_end = submission_end
-        session.commit()
         return weekly
 
     def close_weekly(self, session, weekly):
@@ -107,7 +104,6 @@ class Database:
             if entry.status == EntryStatus.REGISTERED:
                 entry.status = EntryStatus.DNF
         weekly.status = WeeklyStatus.CLOSED
-        session.commit()
 
     def get_player_entry(self, session, weekly, discord_id):
         return session.get(PlayerEntry, (weekly.id, discord_id))
@@ -151,7 +147,6 @@ class Database:
             registered_at=datetime.now()
         )
         session.add(entry)
-        session.commit()
         return entry
 
     def forfeit_player(self, session, weekly, discord_id):
@@ -161,7 +156,6 @@ class Database:
                 "Attempt to forfeit a player that is not registered to a weekly."
             )
         entry.status = EntryStatus.DNF
-        session.commit()
 
     def submit_time(self, session, entry, finish_time, print_url):
         if entry.status != EntryStatus.REGISTERED:
@@ -172,7 +166,6 @@ class Database:
         entry.print_url = print_url
         entry.time_submitted_at = datetime.now()
         entry.status = EntryStatus.TIME_SUBMITTED
-        session.commit()
 
     def submit_vod(self, session, entry, vod_url):
         if entry.status is not EntryStatus.TIME_SUBMITTED:
@@ -182,11 +175,9 @@ class Database:
         entry.status = EntryStatus.DONE
         entry.vod_url = vod_url
         entry.vod_submitted_at = datetime.now()
-        session.commit()
 
     def submit_comment(self, session, entry, comment):
         entry.comment = comment
-        session.commit()
 
     def update_time(self, session, entry, new_time):
         if entry.status not in [EntryStatus.TIME_SUBMITTED, EntryStatus.DONE]:
@@ -194,7 +185,6 @@ class Database:
                 "Attempt to alter a time for a player that did not have submitted their time."
             )
         entry.finish_time = new_time
-        session.commit()
 
     def update_vod(self, session, entry, new_vod):
         if entry.status is not EntryStatus.DONE:
@@ -202,7 +192,6 @@ class Database:
                 "Attempt to alter a VOD for a player that did not have submitted their VOD."
             )
         entry.vod_url = new_vod
-        session.commit()
 
     def _generate_schema(self):
         Base.metadata.drop_all(self.engine)
