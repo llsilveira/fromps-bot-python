@@ -147,7 +147,10 @@ class FrompsBot(commands.Bot):
                 await ping_on_error(user, ctx, error)
 
         if isinstance(error, commands.errors.CommandInvokeError) and isinstance(error.original, FrompsBotException):
-            await ctx.reply(error.original)
+            if error.original.reply_on_private:
+                await ctx.author.send(error.original)
+            else:
+                await ctx.reply(error.original)
 
         elif isinstance(error, commands.MissingRequiredArgument):
             param_map = {}

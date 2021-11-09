@@ -3,7 +3,7 @@ from discord.ext import commands
 import yaml
 
 from database import model
-from datatypes import Games, EntryStatus, WeeklyStatus
+from datatypes import Games, EntryStatus, WeeklyStatus, PlayerStatus
 
 from util import get_discord_name, time_to_timedelta, timedelta_to_str
 from util.ImageHashGenerator import ImageHashGenerator
@@ -64,7 +64,10 @@ class Weekly(commands.Cog, name="Semanais"):
             "url_do_vod": "a URL do seu VOD",
             "url_da_seed": "a URL da seed",
             "codigo_de_verificacao": "o código de verificação",
-            "limite_para_envios": "o limite para envios"
+            "limite_para_envios": "o limite para envios",
+            "id_do_jogador": "o ID do jogador",
+            "nome": "o nome",
+            "unban": "opção para desbanir"
         }
 
     @commands.command(
@@ -77,6 +80,64 @@ class Weekly(commands.Cog, name="Semanais"):
             weeklies = sorted(self.db.list_open_weeklies(session), key=lambda w: w.submission_end)
             embed = embeds.list_embed(weeklies)
             await ctx.message.reply(embed=embed)
+
+    @commands.command(
+        name='setname',
+        help="Altera o nome de um jogador.\nEste comando deve ser utilizado APENAS NO PRIVADO.",
+        brief="*NO PRIVADO* Altera o nome de um jogador.",
+        ignore_extra=False,
+        hidden=True,
+        dm_only=True
+    )
+    @log
+    async def setname(self, ctx, id_do_jogador: int, nome: str):
+        new_name = nome
+        discord_id = id_do_jogador
+        self._check_admin(ctx.author)
+
+        with self.db.Session() as session:
+            player = self.db.get_player(session, discord_id)
+            if player is None:
+                raise FrompsBotException("Jogador não encontrado.")
+            player.name = new_name
+            session.commit()
+            await ctx.message.reply("Nome do jogador '%d' alterado com sucesso." % discord_id)
+
+    @commands.command(
+        name='ban',
+        help="Banir ou remover banimento de um jogador.\nPara banir um jogador informe apenas o id do jogador. Para"
+             " remover um banimento, informe o id do jogador juntamente com a palavra 'remove'."
+             "\nEste comando deve ser utilizado APENAS NO PRIVADO.",
+        brief="*NO PRIVADO* Banir um jogador.",
+        ignore_extra=False,
+        hidden=True,
+        dm_only=True
+    )
+    @log
+    async def ban(self, ctx, id_do_jogador: int, remover_ban: str = ""):
+        discord_id = id_do_jogador
+        unban = str.lower(remover_ban) == "remover"
+        self._check_admin(ctx.author)
+
+        with self.db.Session() as session:
+            player = self.db.get_player(session, discord_id)
+            if player is None:
+                raise FrompsBotException("Jogador não encontrado.")
+            if unban:
+                if player.status == PlayerStatus.BANNED:
+                    player.status = PlayerStatus.ACTIVE
+                    session.commit()
+                    await ctx.message.reply("Banimento do(a) jogador(a) '%s' removido com sucesso!" % player.name)
+                else:
+                    await ctx.message.reply("O(a) jogador(a) '%s' não está banido(a)." % player.name)
+            else:
+                if player.status != PlayerStatus.BANNED:
+                    player.status = PlayerStatus.BANNED
+                    session.commit()
+                    await ctx.message.reply("O jogador(a) '%s' foi banido(a)!" % player.name)
+                else:
+                    await ctx.message.reply("O(a) jogador(a) '%s' já está banido(a)." % player.name)
+
 
     @commands.command(
         name='seed',
@@ -98,17 +159,22 @@ class Weekly(commands.Cog, name="Semanais"):
             if datetime.now() >= weekly.submission_end:
                 raise FrompsBotException("As inscrições para a semanal de %s foram encerradas." % game)
 
-            author = ctx.author
-            entry = self.db.get_player_entry(session, weekly, author.id)
+            player = self.db.get_or_create_player(session, ctx.author)
+            if player.status != PlayerStatus.ACTIVE:
+                raise FrompsBotException(
+                    "Seu perfil contém restrições. Para saber mais, contate um moderador.", reply_on_private=True
+                )
+
+            entry = self.db.get_player_entry(session, weekly, player)
             if entry is None:
-                registered = self.db.get_registered_entry(session, author.id)
+                registered = self.db.get_registered_entry(session, player)
                 if registered is not None:
                     game = registered.weekly.game
                     raise FrompsBotException(
                         "Você deve registrar o seu tempo ou desistir da semanal de %s"
                         " antes de participar de outra. " % game
                     )
-                self.db.register_player(session, weekly, author.id, get_discord_name(author))
+                self.db.register_player(session, weekly, player)
                 session.commit()
 
             elif entry.status != EntryStatus.REGISTERED:
@@ -135,9 +201,10 @@ class Weekly(commands.Cog, name="Semanais"):
         finish_time = tempo
 
         with self.db.Session() as session:
-            author_id = ctx.author.id
-            entry = self.db.get_registered_entry(session, author_id)
-            if entry is None:
+            player = self.db.get_player(session, ctx.author.id)
+            if player is not None:
+                entry = self.db.get_registered_entry(session, player)
+            if player is None or entry is None:
                 raise FrompsBotException("Você já registrou seu tempo ou não está participando de uma semanal aberta.")
 
             if len(ctx.message.attachments) != 1:
@@ -167,9 +234,10 @@ class Weekly(commands.Cog, name="Semanais"):
     @log
     async def forfeit(self, ctx, *, ok: str = None):
         with self.db.Session() as session:
-            author_id = ctx.author.id
-            entry = self.db.get_registered_entry(session, author_id)
-            if entry is None:
+            player = self.db.get_player(session, ctx.author.id)
+            if player is not None:
+                entry = self.db.get_registered_entry(session, player)
+            if player is None or entry is None:
                 raise FrompsBotException("Você já registrou seu tempo ou não está participando de uma semanal.")
 
             if ok is None or str.lower(ok) != "ok":
@@ -178,7 +246,7 @@ class Weekly(commands.Cog, name="Semanais"):
                     (entry.weekly.game, ctx.prefix, ctx.invoked_with)
                 )
 
-            self.db.forfeit_player(session, entry.weekly, author_id)
+            self.db.forfeit(session, entry)
             session.commit()
 
             await ctx.message.reply("Você não está mais participando da semanal de %s." % entry.weekly.game)
@@ -203,9 +271,10 @@ class Weekly(commands.Cog, name="Semanais"):
             if weekly is None:
                 raise FrompsBotException("Não há uma semanal de %s em andamento." % game)
 
-            author_id = ctx.author.id
-            entry = self.db.get_player_entry(session, weekly, author_id)
-            if entry is None:
+            player = self.db.get_player(session, ctx.author.id)
+            if player is not None:
+                entry = self.db.get_player_entry(session, weekly, player)
+            if player is None or entry is None:
                 raise FrompsBotException("Você ainda não solicitou a seed da semanal de %s." % game)
 
             if entry.status == EntryStatus.REGISTERED:
@@ -239,9 +308,10 @@ class Weekly(commands.Cog, name="Semanais"):
             if weekly is None:
                 raise FrompsBotException("Não há uma semanal de %s em andamento." % game)
 
-            author_id = ctx.author.id
-            entry = self.db.get_player_entry(session, weekly, author_id)
-            if entry is None:
+            player = self.db.get_player(session, ctx.author.id)
+            if player is not None:
+                entry = self.db.get_player_entry(session, weekly, player)
+            if player is None or entry is None:
                 raise FrompsBotException("Você ainda não solicitou a seed da semanal de %s." % game)
 
             if comment is not None and len(comment) > 250:
@@ -280,25 +350,22 @@ class Weekly(commands.Cog, name="Semanais"):
             if len(entries) > 0:
                 reply = ""
                 for e in entries:
-
-                    user = self.bot.get_user(e.discord_id)
+                    player = e.player
+                    user = self.bot.get_user(player.discord_id)
                     if user is None:
                         try:
-                            user = await self.bot.fetch_user(e.discord_id)
+                            user = await self.bot.fetch_user(player.discord_id)
                         except Exception:
                             pass
                     nicknames = []
                     for guild in self.bot.guilds:
-                        member = guild.get_member(e.discord_id)
+                        member = guild.get_member(player.discord_id)
                         if member is not None:
                             name = member.display_name
-                            if user.name != name and name not in nicknames:
+                            if player.name != name and name not in nicknames:
                                 nicknames.append(name)
 
-                    if user is None:
-                        name = "Usuário Desconhecido"
-                    else:
-                        name = get_discord_name(user)
+                    name = player.name
                     if len(nicknames) > 0:
                         name += " (Aka: {})".format(", ".join(nicknames))
 
@@ -527,12 +594,12 @@ class Weekly(commands.Cog, name="Semanais"):
             self,
             ctx,
             codigo_do_jogo: GameConverter(),
-            jogador: str,
+            id_jogador: int,
             parametro: str,
             valor: str
     ):
         game = codigo_do_jogo
-        player = jogador
+        player_id = id_jogador
         parameter = str.lower(parametro)
         value = valor
         self._check_monitor(ctx.author, game)
@@ -542,12 +609,14 @@ class Weekly(commands.Cog, name="Semanais"):
             if weekly is None:
                 raise FrompsBotException("Não há uma semanal de %s em andamento." % game)
 
-            entry = self.db.get_player_entry_by_name(session, weekly, jogador)
-            if entry is None:
-                raise FrompsBotException("%s não está participando da semanal de %s." % (player, game))
+            player = self.db.get_player(session, player_id)
+            if player is not None:
+                entry = self.db.get_player_entry(session, weekly, player)
+            if player is None or entry is None:
+                raise FrompsBotException("O usuário informado não está participando da semanal de %s." % game)
 
             if entry.status == EntryStatus.DNF:
-                raise FrompsBotException("%s não está mais participando da semanal de %s." % (player, game))
+                raise FrompsBotException("%s não está mais participando da semanal de %s." % (entry.player.name, game))
 
             if parameter == 'time':
                 converter = TimeConverter()
@@ -559,13 +628,17 @@ class Weekly(commands.Cog, name="Semanais"):
                     )
 
                 if entry.status not in [EntryStatus.TIME_SUBMITTED, EntryStatus.DONE]:
-                    raise FrompsBotException("%s ainda não enviou seu tempo para a semanal de %s." % (player, game))
+                    raise FrompsBotException(
+                        "%s ainda não enviou seu tempo para a semanal de %s." % (entry.player.name, game)
+                    )
 
                 self.db.update_time(session, entry, finish_time)
 
             elif parameter == 'vod':
                 if entry.status is not EntryStatus.DONE:
-                    raise FrompsBotException("%s ainda não enviou seu VOD para a semanal de %s." % (player, game))
+                    raise FrompsBotException(
+                        "%s ainda não enviou seu VOD para a semanal de %s." % (entry.player.name, game)
+                    )
 
                 self.db.update_vod(session, entry, value)
 
@@ -573,7 +646,9 @@ class Weekly(commands.Cog, name="Semanais"):
                 raise FrompsBotException("Parâmetro desconhecido: %s." % parametro)
 
             session.commit()
-            await ctx.message.reply("Entrada de %s para a semanal de %s alterada com sucesso!" % (player, game))
+            await ctx.message.reply(
+                "Entrada de %s para a semanal de %s alterada com sucesso!" % (entry.player.name, game)
+            )
 
     async def genhash(self, ctx, game, hash_str):
         try:

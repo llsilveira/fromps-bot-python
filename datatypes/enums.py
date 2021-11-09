@@ -13,6 +13,12 @@ class EntryStatus(enum.Enum):
     DNF = 'DNF'
 
 
+class PlayerStatus(enum.Enum):
+    ACTIVE = 'ACTIVE'
+    RESTRICTED = 'RESTRICTED'
+    BANNED = 'BANNED'
+
+
 class Games(enum.Enum):
     ALTTPR = (
         "A Link to the Past Randomizer",

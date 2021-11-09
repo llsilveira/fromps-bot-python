@@ -3,8 +3,8 @@ from sqlalchemy.orm import sessionmaker
 
 from datetime import datetime
 
-from datatypes import EntryStatus, WeeklyStatus
-from database.model import PlayerEntry, Weekly, Base
+from datatypes import PlayerStatus, EntryStatus, WeeklyStatus
+from database.model import Player, PlayerEntry, Weekly, Base
 
 import logging
 logger = logging.getLogger(__name__)
@@ -40,6 +40,24 @@ class Database:
         self.engine = create_engine(url, **options, future=True)
         self.Session = sessionmaker(self.engine, future=True)
 
+    def get_player(self, session, discord_id):
+        return session.get(Player, discord_id)
+
+    def create_player(self, session, discord_user):
+        player = Player(
+            discord_id=discord_user.id,
+            name=discord_user.display_name,
+            status=PlayerStatus.ACTIVE
+        )
+        session.add(player)
+        return player
+
+    def get_or_create_player(self, session, discord_user):
+        player = self.get_player(session, discord_user.id)
+        if player is None:
+            player = self.create_player(session, discord_user)
+        return player
+
     def get_weekly(self, session, weekly_id):
         return session.get(Weekly, weekly_id)
 
@@ -72,15 +90,12 @@ class Database:
             select(Weekly).where(Weekly.status == WeeklyStatus.OPEN)
         ).scalars().all()
 
-    def create_weekly(self, session, game, seed_url, seed_hash, submission_end, *, force_close=False):
+    def create_weekly(self, session, game, seed_url, seed_hash, submission_end):
         open_weekly = self.get_open_weekly(session, game)
         if open_weekly is not None:
-            if force_close:
-                self.close_weekly(session, open_weekly)
-            else:
-                raise ConsistencyError(
-                    "Attempt to create a weekly while another one for the same game is still open"
-                )
+            raise ConsistencyError(
+                "Attempt to create a weekly while another one for the same game is still open"
+            )
 
         weekly = Weekly(
             game=game,
@@ -105,21 +120,12 @@ class Database:
                 entry.status = EntryStatus.DNF
         weekly.status = WeeklyStatus.CLOSED
 
-    def get_player_entry(self, session, weekly, discord_id):
-        return session.get(PlayerEntry, (weekly.id, discord_id))
+    def get_player_entry(self, session, weekly, player):
+        return session.get(PlayerEntry, (weekly.id, player.discord_id))
 
-    def get_player_entry_by_name(self, session, weekly, discord_name):
-        entries = session.execute(
-            select(PlayerEntry).where(PlayerEntry.weekly == weekly, PlayerEntry.discord_name == discord_name)
-        ).scalars().all()
-
-        if len(entries) == 0:
-            return None
-        return entries[0]
-
-    def get_registered_entry(self, session, discord_id):
+    def get_registered_entry(self, session, player):
         registered = session.execute(
-            select(PlayerEntry).where(PlayerEntry.discord_id == discord_id,
+            select(PlayerEntry).where(PlayerEntry.player_discord_id == player.discord_id,
                                       PlayerEntry.status == EntryStatus.REGISTERED)
         ).scalars().all()
 
@@ -129,28 +135,26 @@ class Database:
         if len(registered) > 1:
             logger.error(
                 "An inconsistency was found while quering the database: user %d has more than one 'REGISTERED' entry.",
-                discord_id
+                player.discord_id
             )
         return registered[0]
 
-    def register_player(self, session, weekly, discord_id, discord_name):
-        if self.get_registered_entry(session, discord_id) is not None:
+    def register_player(self, session, weekly, player):
+        if self.get_registered_entry(session, player) is not None:
             raise ConsistencyError(
                 "Attempt to register a player that is already registered to a weekly."
             )
 
         entry = PlayerEntry(
             weekly=weekly,
-            discord_id=discord_id,
-            discord_name=discord_name,
+            player=player,
             status=EntryStatus.REGISTERED,
             registered_at=datetime.now()
         )
         session.add(entry)
         return entry
 
-    def forfeit_player(self, session, weekly, discord_id):
-        entry = self.get_player_entry(session, weekly, discord_id)
+    def forfeit(self, session, entry):
         if entry.status != EntryStatus.REGISTERED:
             raise ConsistencyError(
                 "Attempt to forfeit a player that is not registered to a weekly."
