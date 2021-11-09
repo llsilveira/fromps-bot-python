@@ -39,10 +39,11 @@ def log(f):
 
 
 class Weekly(commands.Cog, name="Semanais"):
-    def __init__(self, bot, database, *, monitors, instructions_file):
+    def __init__(self, bot, database, *, admins, monitors, instructions_file):
         self.bot = bot
         self.db = database
         self.monitors = {Games[key]: monitor for (key, monitor) in monitors.items()}
+        self.admins = admins
         self.img_hash_generator = ImageHashGenerator()
 
         # Load instructions file
@@ -585,6 +586,10 @@ class Weekly(commands.Cog, name="Semanais"):
             if len(message.attachments) != 1:
                 raise FrompsBotException("Erro ao enviar a imagem pelo Discord.")
             return message.attachments[0].url
+
+    def _check_admin(self, user):
+        if user.id not in self.admins:
+            raise FrompsBotException("Este comando deve ser executado apenas por administradores.")
 
     def _check_monitor(self, user, game=None):
         if game is not None:
