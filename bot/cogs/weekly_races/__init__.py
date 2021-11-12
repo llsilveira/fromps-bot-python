@@ -11,6 +11,7 @@ from bot.converters import GameConverter, TimeConverter, DatetimeConverter
 from bot.exceptions import FrompsBotException
 
 from . import embeds
+from .leaderboard import update_weekly, update_leaderboard
 
 from datetime import datetime, time
 import io
@@ -67,7 +68,8 @@ class Weekly(commands.Cog, name="Semanais"):
             "limite_para_envios": "o limite para envios",
             "id_do_jogador": "o ID do jogador",
             "nome": "o nome",
-            "unban": "opção para desbanir"
+            "unban": "opção para desbanir",
+            "url_dos_resultados": "URL dos resultados da leaderboard"
         }
 
     @commands.command(
@@ -138,7 +140,6 @@ class Weekly(commands.Cog, name="Semanais"):
                 else:
                     await ctx.message.reply("O(a) jogador(a) '%s' já está banido(a)." % player.name)
 
-
     @commands.command(
         name='seed',
         aliases=['semente'],
@@ -165,7 +166,7 @@ class Weekly(commands.Cog, name="Semanais"):
                     "Seu perfil contém restrições. Para saber mais, contate um moderador.", reply_on_private=True
                 )
 
-            entry = self.db.get_player_entry(session, weekly, player)
+            entry = self.db.get_player_entry(session, weekly.id, player.discord_id)
             if entry is None:
                 registered = self.db.get_registered_entry(session, player)
                 if registered is not None:
@@ -273,7 +274,7 @@ class Weekly(commands.Cog, name="Semanais"):
 
             player = self.db.get_player(session, ctx.author.id)
             if player is not None:
-                entry = self.db.get_player_entry(session, weekly, player)
+                entry = self.db.get_player_entry(session, weekly.id, player.discord_id)
             if player is None or entry is None:
                 raise FrompsBotException("Você ainda não solicitou a seed da semanal de %s." % game)
 
@@ -310,7 +311,7 @@ class Weekly(commands.Cog, name="Semanais"):
 
             player = self.db.get_player(session, ctx.author.id)
             if player is not None:
-                entry = self.db.get_player_entry(session, weekly, player)
+                entry = self.db.get_player_entry(session, weekly.id, player.discord_id)
             if player is None or entry is None:
                 raise FrompsBotException("Você ainda não solicitou a seed da semanal de %s." % game)
 
@@ -445,8 +446,16 @@ class Weekly(commands.Cog, name="Semanais"):
             if game in [Games.ALTTPR, Games.OOTR]:
                 hash_str = await self.genhash(ctx, game, hash_str)
 
-            self.db.create_weekly(session, game, seed_url, hash_str, submission_end)
-            await ctx.message.reply("Semanal de %s criada com sucesso!" % game)
+            lb = self.db.get_open_leaderboard(session, game)
+            self.db.create_weekly(session, game, seed_url, hash_str, submission_end, lb)
+            session.commit()
+
+            if lb is None:
+                msg = "Semanal de %s criada com sucesso!" % game
+            else:
+                count = len(lb.weeklies)
+                msg = "Semanal #%d da leaderboard de %s criada com sucesso!" % (count, game)
+            await ctx.message.reply(msg)
 
     @commands.command(
         name="weeklytest",
@@ -508,8 +517,10 @@ class Weekly(commands.Cog, name="Semanais"):
                 raise FrompsBotException("A semanal de %s não está aberta." % game)
 
             self.db.close_weekly(session, weekly)
-            session.commit()
+            if weekly.leaderboard is not None:
+                update_weekly(self.db, session, weekly)
 
+            session.commit()
             await ctx.message.reply("Semanal de %s fechada com sucesso!" % game)
 
     @commands.command(
@@ -611,7 +622,7 @@ class Weekly(commands.Cog, name="Semanais"):
 
             player = self.db.get_player(session, player_id)
             if player is not None:
-                entry = self.db.get_player_entry(session, weekly, player)
+                entry = self.db.get_player_entry(session, weekly.id, player.discord_id)
             if player is None or entry is None:
                 raise FrompsBotException("O usuário informado não está participando da semanal de %s." % game)
 
@@ -649,6 +660,228 @@ class Weekly(commands.Cog, name="Semanais"):
             await ctx.message.reply(
                 "Entrada de %s para a semanal de %s alterada com sucesso!" % (entry.player.name, game)
             )
+
+    @commands.group(
+        name="leaderboard",
+        aliases=['lb'],
+        help="Mostra a leaderboard ativa.",
+        brief="Mostra a leaderboard ativa.",
+        invoke_without_command=True,
+        ignore_extra=False,
+    )
+    async def leaderboard(self, ctx, codigo_do_jogo: GameConverter()):
+        game = codigo_do_jogo
+
+        with self.db.Session() as session:
+            lb = self.db.get_open_leaderboard(session, game)
+            if lb is None:
+                await ctx.reply("Não há uma leaderboard aberta para %s." % game)
+            else:
+                if lb.results_url is None:
+                    await ctx.reply("Os resultados da leaderboard de %s ainda não foram publicados." % game)
+                else:
+                    await ctx.reply("Leaderboard de %s: <%s>" % (game, lb.results_url))
+
+    @leaderboard.command(
+        name="entrar",
+        aliases=['enter', 'e'],
+        help="Participar de uma leaderboard.\nIsso afeta apenas as seeds que solicitar após entrar na leaderboard. Caso"
+             " tenha solicitado uma seed antes de entrar, seu resultado não será inserido na leaderboard.",
+        brief="Participar de uma leaderboard.",
+        ignore_extra=False,
+        signup_only=True
+    )
+    async def leaderboard_enter(self, ctx, codigo_do_jogo: GameConverter()):
+        game = codigo_do_jogo
+
+        with self.db.Session() as session:
+            player = self.db.get_or_create_player(session, ctx.author)
+            if not self.db.excluded_from_leaderboard(session, player, game):
+                raise FrompsBotException("Você já está participando da leaderboard de '%s'." % game)
+            self.db.include_on_leaderboard(session, player, game)
+            session.commit()
+            await ctx.reply("Você entrou para a leaderboard de '%s'." % game)
+
+    @leaderboard.command(
+        name="sair",
+        aliases=['quit', 'q'],
+        help="Deixar de participar de uma leaderboard.\nVocê ainda pode pedir seeds e participar das races, mas seu"
+             " resultado não será considerado na leaderboard.\nIsso afeta apenas as seeds que solicitar após sair da"
+             " leaderboard. Caso tenha solicitado uma seed antes de sair, seu resultado será inserido na leaderboard.",
+        brief="Deixar de participar de uma leaderboard.",
+        ignore_extra=False,
+        signup_only=True
+    )
+    async def leaderboard_quit(self, ctx, codigo_do_jogo: GameConverter()):
+        game = codigo_do_jogo
+
+        with self.db.Session() as session:
+            player = self.db.get_or_create_player(session, ctx.author)
+            if self.db.excluded_from_leaderboard(session, player, game):
+                raise FrompsBotException("Você já saiu da leaderboard de '%s'." % game)
+            self.db.exclude_from_leaderboard(session, player, game)
+            session.commit()
+            await ctx.reply("Você não está mais participando da leaderboard de '%s'." % game)
+
+    @leaderboard.command(
+        name="open",
+        aliases=['o'],
+        help="Abrir uma nova leaderboard.\nVocê não poderá abrir uma leaderboard se houver outra aberta para o mesmo jogo.\nEste comando deve ser utilizado APENAS NO PRIVADO.",
+        brief="*NO PRIVADO* Abrir uma uma nova leaderboard.",
+        ignore_extra=False,
+        hidden=True,
+        dm_only=True
+    )
+    async def leaderboard_open(self, ctx, codigo_do_jogo: GameConverter(), url_dos_resultados=None):
+        game = codigo_do_jogo
+        results_url = url_dos_resultados
+        self._check_monitor(ctx.author, game)
+
+        with self.db.Session() as session:
+            lb = self.db.get_open_leaderboard(session, game)
+            if lb is not None:
+                raise FrompsBotException(
+                    "Há uma leaderboard aberta para %s. Feche-a primeiro antes de criar uma nova." % game
+                )
+
+            open_weekly = self.db.get_open_weekly(session, game)
+            if open_weekly is not None:
+                raise FrompsBotException(
+                    "Não foi possível abrir a leaderboard de '%s' pois há uma semanal aberta para este jogo." % game
+                )
+
+            self.db.create_leaderboard(session, game, results_url)
+            session.commit()
+
+            await ctx.message.reply("Leaderboard de %s aberta com sucesso!" % game)
+
+    @leaderboard.command(
+        name="close",
+        aliases=['x'],
+        help="Fechar a leaderboard aberta.\nVocê não poderá fechar a leaderboard se houver uma semanal aberta.\nEste comando deve ser utilizado APENAS NO PRIVADO.",
+        brief="*NO PRIVADO* Criar uma nova leaderboard.",
+        ignore_extra=False,
+        hidden=True,
+        dm_only=True
+    )
+    async def leaderboard_close(self, ctx, codigo_do_jogo: GameConverter()):
+        game = codigo_do_jogo
+        self._check_monitor(ctx.author, game)
+
+        with self.db.Session() as session:
+            lb = self.db.get_open_leaderboard(session, game)
+            if lb is None:
+                raise FrompsBotException("A leaderboard de %s não está aberta." % game)
+
+            weekly = self.db.get_open_weekly(session, game)
+            if weekly is not None:
+                raise FrompsBotException("Não foi possível fechar a leaderboard pois há uma semanal de %s aberta." % game)
+
+            self.db.close_leaderboard(session, lb)
+            session.commit()
+
+            await ctx.message.reply("Leaderboard de %s fechada com sucesso!" % game)
+
+    @leaderboard.command(
+        name="update",
+        aliases=['u'],
+        help="Fechar a leaderboard aberta.\nVocê não poderá fechar a leaderboard se houver uma semanal aberta.\nEste comando deve ser utilizado APENAS NO PRIVADO.",
+        brief="*NO PRIVADO* Criar uma nova leaderboard.",
+        ignore_extra=False,
+        hidden=True,
+        dm_only=True
+    )
+    async def leaderboard_update(self, ctx, codigo_do_jogo: GameConverter()):
+        game = codigo_do_jogo
+        self._check_monitor(ctx.author, game)
+
+        with self.db.Session() as session:
+            lb = self.db.get_open_leaderboard(session, game)
+            if lb is None:
+                raise FrompsBotException("A leaderboard de %s não está aberta." % game)
+
+            update_leaderboard(self.db, session, lb)
+            session.commit()
+            await ctx.reply("A leaderboard de %s foi atualizada!" % game)
+
+
+    @leaderboard.command(
+        name="add",
+        aliases=['a'],
+        help="Adiciona uma semanal à leaderboard atual. Caso não seja especificada uma semanal e houver uma aberta, esta será adicionada à leaderboard.\nEste comando deve ser utilizado APENAS NO PRIVADO.",
+        brief="*NO PRIVADO* Adiciona uma semanal à leaderboard atual.",
+        ignore_extra=False,
+        hidden=True,
+        dm_only=True
+    )
+    async def leaderboard_add(self, ctx, codigo_do_jogo: GameConverter(), weekly_id: int = None):
+        raise FrompsBotException("Não implementado.")
+
+    @leaderboard.command(
+        name="remove",
+        aliases=['r'],
+        help="Remove uma semanal da leaderboard atual. Caso não seja especificada uma semanal e houver uma aberta, esta será removida da leaderboard.\nEste comando deve ser utilizado APENAS NO PRIVADO.",
+        brief="*NO PRIVADO* Remove uma semanal da leaderboard atual.",
+        ignore_extra=False,
+        hidden=True,
+        dm_only=True
+    )
+    async def leaderboard_remove(self, ctx, codigo_do_jogo: GameConverter(), weekly_id: int = None):
+        raise FrompsBotException("Não implementado.")
+
+    @leaderboard.command(
+        name="url",
+        help="Define ou altera a url para os resultados da leaderboard.\nEste comando deve ser utilizado APENAS NO PRIVADO.",
+        brief="*NO PRIVADO* Define ou altera a url para os resultados da leaderboard.",
+        ignore_extra=False,
+        hidden=True,
+        dm_only=True
+    )
+    async def leaderboard_url(self, ctx, codigo_do_jogo: GameConverter(), url_dos_resultados):
+        game = codigo_do_jogo
+        results_url = url_dos_resultados
+        self._check_monitor(ctx.author, game)
+
+        with self.db.Session() as session:
+            lb = self.db.get_open_leaderboard(session, game)
+            if lb is None:
+                raise FrompsBotException("A leaderboard de %s não está aberta." % game)
+
+            lb.results_url = results_url
+            session.commit()
+            ctx.reply("URL para os resultados da leaderboard de %s alterada com sucesso." % game)
+
+    @leaderboard.command(
+        name="set",
+        aliases=['s'],
+        help="Altera um parâmetro da leaderboard.\nEste comando deve ser utilizado APENAS NO PRIVADO.",
+        brief="*NO PRIVADO* Altera um parâmetro da leaderboard.",
+        ignore_extra=False,
+        hidden=True,
+        dm_only=True
+    )
+    async def leaderboard_set(self, ctx, codigo_do_jogo: GameConverter(), parametro: str, valor: str = None):
+        game = codigo_do_jogo
+        parameter = parametro
+        value = valor
+        self._check_monitor(ctx.author, game)
+
+        with self.db.Session() as session:
+            lb = self.db.get_open_leaderboard(session, game)
+            if lb is None:
+                raise FrompsBotException("A leaderboard de %s não está aberta." % game)
+
+            if value is None:
+                if parameter in lb.leaderboard_data.keys():
+                    del lb.leaderboard_data[parameter]
+                    session.commit()
+                    await ctx.reply("Parâmetro '%s' removido com sucesso!" % parameter)
+                else:
+                    raise FrompsBotException("Parâmetro '%s' não foi setado ainda." % parameter)
+            else:
+                lb.leaderboard_data[parameter] = value
+                session.commit()
+                await ctx.reply("Parâmetro '%s' atualizado com sucesso!" % parameter)
 
     async def genhash(self, ctx, game, hash_str):
         try:

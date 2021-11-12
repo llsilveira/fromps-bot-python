@@ -3,8 +3,8 @@ from sqlalchemy.orm import sessionmaker
 
 from datetime import datetime
 
-from datatypes import PlayerStatus, EntryStatus, WeeklyStatus
-from database.model import Player, PlayerEntry, Weekly, Base
+from datatypes import PlayerStatus, EntryStatus, WeeklyStatus, LeaderboardStatus
+from database.model import Player, PlayerEntry, Weekly, Leaderboard, LeaderboardEntry, Base
 
 import logging
 logger = logging.getLogger(__name__)
@@ -47,7 +47,10 @@ class Database:
         player = Player(
             discord_id=discord_user.id,
             name=discord_user.display_name,
-            status=PlayerStatus.ACTIVE
+            status=PlayerStatus.ACTIVE,
+            leaderboard_data={
+                "excluded_from": [],
+            }
         )
         session.add(player)
         return player
@@ -90,7 +93,7 @@ class Database:
             select(Weekly).where(Weekly.status == WeeklyStatus.OPEN)
         ).scalars().all()
 
-    def create_weekly(self, session, game, seed_url, seed_hash, submission_end):
+    def create_weekly(self, session, game, seed_url, seed_hash, submission_end, leaderboard=None):
         open_weekly = self.get_open_weekly(session, game)
         if open_weekly is not None:
             raise ConsistencyError(
@@ -103,7 +106,8 @@ class Database:
             seed_url=seed_url,
             seed_hash=seed_hash,
             created_at=datetime.now(),
-            submission_end=submission_end
+            submission_end=submission_end,
+            leaderboard=leaderboard
         )
         session.add(weekly)
         return weekly
@@ -120,8 +124,8 @@ class Database:
                 entry.status = EntryStatus.DNF
         weekly.status = WeeklyStatus.CLOSED
 
-    def get_player_entry(self, session, weekly, player):
-        return session.get(PlayerEntry, (weekly.id, player.discord_id))
+    def get_player_entry(self, session, weekly_id, player_discord_id):
+        return session.get(PlayerEntry, (weekly_id, player_discord_id))
 
     def get_registered_entry(self, session, player):
         registered = session.execute(
@@ -149,7 +153,8 @@ class Database:
             weekly=weekly,
             player=player,
             status=EntryStatus.REGISTERED,
-            registered_at=datetime.now()
+            registered_at=datetime.now(),
+            leaderboard_data={"excluded": self.excluded_from_leaderboard(self, player, weekly.game)}
         )
         session.add(entry)
         return entry
@@ -196,6 +201,96 @@ class Database:
                 "Attempt to alter a VOD for a player that did not have submitted their VOD."
             )
         entry.vod_url = new_vod
+
+    def get_leaderboard(self, session, leaderboard_id):
+        return session.get(Leaderboard, leaderboard_id)
+
+    def get_open_leaderboard(self, session, game):
+        return session.execute(
+            select(Leaderboard).where(Leaderboard.game == game, Leaderboard.status == LeaderboardStatus.OPEN).order_by(
+                Leaderboard.created_at.desc()
+            )
+        ).scalars().first()
+
+    def create_leaderboard(self, session, game, results_url=None):
+        open_lb = self.get_open_leaderboard(session, game)
+        if open_lb is not None:
+            raise ConsistencyError(
+                "Attempt to open a leaderboard while another one for the same game is still open"
+            )
+
+        lb = Leaderboard(
+            game=game,
+            results_url=results_url,
+            status=LeaderboardStatus.OPEN,
+            created_at=datetime.now(),
+            leaderboard_data={
+                "included_weeklies": "6",
+                "weeklies": []
+            }
+        )
+        session.add(lb)
+        return lb
+
+    def close_leaderboard(self, session, leaderboard):
+        for weekly in leaderboard.weeklies:
+            if weekly.status == WeeklyStatus.OPEN:
+                raise ConsistencyError(
+                    "Cannot close a leaderboard that has an open weekly."
+                )
+        leaderboard.status = LeaderboardStatus.CLOSED
+
+    def get_last_closed_leaderboard(self, session, game):
+        return session.execute(
+            select(Leaderboard).where(
+                Leaderboard.game == game, Leaderboard.status == LeaderboardStatus.CLOSED
+            ).order_by(Leaderboard.created_at.desc())
+        ).scalars().first()
+
+    def reopen_leaderboard(self, session, leaderboard):
+        if leaderboard.status is not LeaderboardStatus.CLOSED:
+            raise ConsistencyError("Attempt to reopen a leaderboard that was not closed.")
+        open_leaderboard = self.get_open_leaderboard(session, leaderboard.game)
+        if open_leaderboard is not None:
+            raise ConsistencyError(
+                "Attempt to reopen a leaderboard while another one for the same game is open"
+            )
+        leaderboard.status = LeaderboardStatus.OPEN
+
+    def get_leaderboard_entry(self, session, leaderboard_id, player_discord_id):
+        return session.get(LeaderboardEntry, (leaderboard_id, player_discord_id))
+
+    def create_leaderboard_entry(self, session, leaderboard, player):
+        lb_entry = LeaderboardEntry(
+            leaderboard=leaderboard,
+            player=player,
+            leaderboard_data={
+                "weeklies": {},
+                "total_points": 0,
+                "final_points": 0
+            }
+        )
+        session.add(lb_entry)
+        return lb_entry
+
+    def get_or_create_leaderboard_entry(self, session, leaderboard, player):
+        lb_entry = self.get_leaderboard_entry(session, leaderboard.id, player.discord_id)
+        if lb_entry is not None:
+            return lb_entry
+        return self.create_leaderboard_entry(session, leaderboard, player)
+
+    def excluded_from_leaderboard(self, session, player, game):
+        return game.name in player.leaderboard_data["excluded_from"]
+
+    def exclude_from_leaderboard(self, session, player, game):
+        if not self.excluded_from_leaderboard(session, player, game):
+            player.leaderboard_data["excluded_from"] += [game.name]
+
+    def include_on_leaderboard(self, session, player, game):
+        if self.excluded_from_leaderboard(session, player, game):
+            player.leaderboard_data["excluded_from"] = [
+                g for g in player.leaderboard_data["excluded_from"] if g != game.name
+            ]
 
     def _generate_schema(self):
         Base.metadata.drop_all(self.engine)

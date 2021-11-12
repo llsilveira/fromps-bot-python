@@ -19,6 +19,11 @@ class PlayerStatus(enum.Enum):
     BANNED = 'BANNED'
 
 
+class LeaderboardStatus(enum.Enum):
+    OPEN = 'OPEN'
+    CLOSED = 'CLOSED'
+
+
 class Games(enum.Enum):
     ALTTPR = (
         "A Link to the Past Randomizer",
