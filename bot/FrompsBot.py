@@ -188,5 +188,8 @@ class FrompsBot(commands.Bot):
     def event(self, coro):
         raise Exception("This decorator is disabled. Use 'listen()' instead")
 
+    async def start(self, *args, **kwargs):
+        await super().start(self.token, *args, **kwargs)
+
     def run(self, *args, **kwargs):
         super().run(self.token, *args, **kwargs)

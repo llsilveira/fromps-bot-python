@@ -11,6 +11,7 @@ pillow = "*"
 "discord.py" = "*"
 alembic = "*"
 psycopg2 = "*"
+quart = "*"
 
 [dev-packages]
 
