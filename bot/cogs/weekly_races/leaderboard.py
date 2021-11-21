@@ -40,7 +40,7 @@ def update_leaderboard(db, session, leaderboard):
             for i in range(1, len(tied_entries)):
                 common_weeklies &= finished_weeklies(tied_entries[i])
             tiebreak_data[pos] = {
-                "common_weeklies": list(common_weeklies)
+                "common_weeklies": sorted(list(common_weeklies))
             }
 
             max_time = time(23, 59, 59)
@@ -48,7 +48,11 @@ def update_leaderboard(db, session, leaderboard):
                 common_points = reduce(lambda a, w: a + e.leaderboard_data["weeklies"][w]["points"], common_weeklies, 0)
                 minimum_time = max_time
                 for w in common_weeklies:
-                    player_entry = db.get_player_entry(session, w, e.player_discord_id)
+                    player_entry = db.get_player_entry(
+                        session,
+                        leaderboard.leaderboard_data["weeklies"][int(w)],
+                        e.player_discord_id
+                    )
                     if minimum_time > player_entry.finish_time:
                         minimum_time = player_entry.finish_time
                 e.leaderboard_data["tiebreak"] = {
