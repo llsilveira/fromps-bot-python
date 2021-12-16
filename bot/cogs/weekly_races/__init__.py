@@ -167,6 +167,7 @@ class Weekly(commands.Cog, name="Semanais"):
                 )
 
             entry = self.db.get_player_entry(session, weekly.id, player.discord_id)
+            commit = False
             if entry is None:
                 registered = self.db.get_registered_entry(session, player)
                 if registered is not None:
@@ -176,7 +177,7 @@ class Weekly(commands.Cog, name="Semanais"):
                         " antes de participar de outra. " % game
                     )
                 self.db.register_player(session, weekly, player)
-                session.commit()
+                commit = True
 
             elif entry.status != EntryStatus.REGISTERED:
                 raise FrompsBotException(
@@ -186,6 +187,8 @@ class Weekly(commands.Cog, name="Semanais"):
 
             embed = embeds.seed_embed(ctx, weekly, self.instructions)
             await ctx.author.send(embed=embed)
+            if commit:
+                session.commit()
 
     @commands.command(
         name="time",

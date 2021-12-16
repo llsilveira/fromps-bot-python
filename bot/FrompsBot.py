@@ -146,11 +146,14 @@ class FrompsBot(commands.Bot):
                 user = await self.fetch_user(self.ping_on_error)
                 await ping_on_error(user, ctx, error)
 
-        if isinstance(error, commands.errors.CommandInvokeError) and isinstance(error.original, FrompsBotException):
-            if error.original.reply_on_private:
-                await ctx.author.send(error.original)
-            else:
-                await ctx.reply(error.original)
+        if isinstance(error, commands.errors.CommandInvokeError):
+            if isinstance(error.original, FrompsBotException):
+                if error.original.reply_on_private:
+                    await ctx.author.send(error.original)
+                else:
+                    await ctx.reply(error.original)
+            elif isinstance(error.original, discord.Forbidden):
+                await ctx.reply("Não foi possível enviar a resposta. Autorize mensagens diretas de membros do servidor e tente novamente.")
 
         elif isinstance(error, commands.MissingRequiredArgument):
             param_map = {}
