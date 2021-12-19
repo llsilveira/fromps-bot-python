@@ -25,7 +25,7 @@ def main():
 
     loop = asyncio.get_event_loop()
     loop.create_task(bot.start())
-    loop.create_task(api.run(host='127.0.0.1', port=5001, use_reloader=False, loop=loop))
+    loop.create_task(api.run(use_reloader=False, loop=loop))
     loop.run_forever()
 
 
