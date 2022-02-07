@@ -145,8 +145,7 @@ class Weekly(commands.Cog, name="Semanais"):
         aliases=['semente'],
         help='Solicitar a seed da semanal de sua escolha. O código do jogo é informado na lista de semanais abertas.',
         brief='Solicitar a seed da semanal de sua escolha.',
-        ignore_extra=False,
-        signup_only=True
+        ignore_extra=False
     )
     @log
     async def seed(self, ctx, codigo_do_jogo: GameConverter()):
