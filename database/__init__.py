@@ -1,5 +1,5 @@
 from sqlalchemy import create_engine, select
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, aliased
 
 from datetime import datetime
 
@@ -291,6 +291,30 @@ class Database:
             player.leaderboard_data["excluded_from"] = [
                 g for g in player.leaderboard_data["excluded_from"] if g != game.name
             ]
+
+    def get_head_to_head(self, session, game, player1_id, player2_id):
+        entry1 = aliased(PlayerEntry, name="entry1")
+        entry2 = aliased(PlayerEntry, name="entry2")
+        weekly = aliased(Weekly, name="weekly")
+
+        stmt = select(entry1, entry2, weekly)\
+            .join(entry2, entry1.weekly_id == entry2.weekly_id)\
+            .join(weekly, entry1.weekly_id == weekly.id)\
+            .where(
+                entry1.player_discord_id == player1_id,
+                entry2.player_discord_id == player2_id,
+                weekly.game == game,
+                weekly.status == WeeklyStatus.CLOSED
+            )
+
+        values = session.execute(stmt).all()
+        ret = {}
+        for row in values:
+            ret[row.weekly.id] = {
+                "weekly": row.weekly,
+                "entries": [row.entry1, row.entry2]
+            }
+        return ret
 
     def _generate_schema(self):
         Base.metadata.drop_all(self.engine)

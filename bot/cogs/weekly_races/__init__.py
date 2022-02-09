@@ -885,6 +885,88 @@ class Weekly(commands.Cog, name="Semanais"):
                 session.commit()
                 await ctx.reply("Parâmetro '%s' atualizado com sucesso!" % parameter)
 
+    @commands.group(
+        name="stat",
+        help="Show some statistics.",
+        brief="Show some statistics.",
+        invoke_without_command=True,
+        hidden=True,
+        ignore_extra=False,
+        dm_only=True
+    )
+    async def stat(self, ctx, sub):
+        pass
+
+    @stat.command(
+        name="confronto",
+        help="Mostra stats do confronto de dois jogadores.\nEste comando deve ser utilizado APENAS NO PRIVADO.",
+        brief="*NO PRIVADO* Mostra stats do confronto de dois jogadores.",
+        ignore_extra=False,
+        dm_only=True
+    )
+    async def stat_headtohead(self, ctx, codigo_do_jogo: GameConverter(), id_do_jogador1: int, id_do_jogador2: int):
+        game = codigo_do_jogo
+        discord_id_1 = id_do_jogador1
+        discord_id_2 = id_do_jogador2
+        self._check_admin(ctx.author)
+
+        if discord_id_1 == discord_id_2:
+            raise FrompsBotException("Os jogadores devem ser diferentes!")
+
+        with self.db.Session() as session:
+            player1 = self.db.get_player(session, discord_id_1)
+            if player1 is None:
+                raise FrompsBotException("Não foi encontrado um jogador com id: %d" % discord_id_1)
+            player2 = self.db.get_player(session, discord_id_2)
+            if player2 is None:
+                raise FrompsBotException("Não foi encontrado um jogador com id: %d" % discord_id_2)
+
+            values = self.db.get_head_to_head(session, game, player1.discord_id, player2.discord_id)
+            results = {
+                "matches": len(values),
+                "players": [player1, player2],
+                "dnfs": [0, 0],
+                "victories": [0, 0],
+                "ties": 0,
+                "victories_with_dnfs": [0, 0],
+                "ties_with_dnfs": 0
+            }
+
+            for value in values.values():
+                entry1 = value["entries"][0]
+                entry2 = value["entries"][1]
+                if entry1.finish_time is None or entry2.finish_time is None:
+                    if entry1.finish_time is None:
+                        results["dnfs"][0] += 1
+                        if entry2.finish_time is None:
+                            results["dnfs"][1] += 1
+                            results["ties_with_dnfs"] += 1
+                        else:
+                            results["victories_with_dnfs"][1] += 1
+                    else:
+                        results["dnfs"][1] += 1
+                        results["victories_with_dnfs"][0] += 1
+                else:
+                    if entry1.finish_time < entry2.finish_time:
+                        results["victories"][0] += 1
+                        results["victories_with_dnfs"][0] += 1
+                    elif entry2.finish_time < entry1.finish_time:
+                        results["victories"][1] += 1
+                        results["victories_with_dnfs"][1] += 1
+                    else:
+                        results["ties"] += 1
+                        results["ties_with_dnfs"] += 1
+
+            msg = "**Confrontos diretos entre %s e %s**\n\n" % (player1.name, player2.name)
+            msg += "**Número de partidas**: %d\n" % results["matches"]
+            msg += "**DNFs**: %d x %d\n" % (results["dnfs"][0], results["dnfs"][1])
+            msg += "**Resultado (excluindo DNFs)**: %d x %d (%d empates)\n" %\
+                   (results["victories"][0], results["victories"][1], results["ties"])
+            msg += "**Resultado (incluindo DNFs)**: %d x %d (%d empates)\n" %\
+                   (results["victories_with_dnfs"][0], results["victories_with_dnfs"][1], results["ties_with_dnfs"])
+
+            await ctx.reply(msg)
+
     async def genhash(self, ctx, game, hash_str):
         try:
             img_bytes = self.img_hash_generator.generate(game, hash_str)
