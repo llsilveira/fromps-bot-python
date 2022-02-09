@@ -957,12 +957,12 @@ class Weekly(commands.Cog, name="Semanais"):
                         results["ties"] += 1
                         results["ties_with_dnfs"] += 1
 
-            msg = "**Confrontos diretos entre %s e %s**\n\n" % (player1.name, player2.name)
-            msg += "**Número de partidas**: %d\n" % results["matches"]
-            msg += "**DNFs**: %d x %d\n" % (results["dnfs"][0], results["dnfs"][1])
-            msg += "**Resultado (excluindo DNFs)**: %d x %d (%d empates)\n" %\
+            msg = "Confrontos diretos entre **%s** e **%s** em **%s**\n\n" % (player1.name, player2.name, game)
+            msg += "Número de partidas: **%d**\n" % results["matches"]
+            msg += "DNFs: **%d x %d**\n" % (results["dnfs"][0], results["dnfs"][1])
+            msg += "Resultado (excluindo DNFs): **%d x %d** (**%d** empates)\n" %\
                    (results["victories"][0], results["victories"][1], results["ties"])
-            msg += "**Resultado (incluindo DNFs)**: %d x %d (%d empates)\n" %\
+            msg += "Resultado (incluindo DNFs): **%d x %d** (**%d** empates)\n" %\
                    (results["victories_with_dnfs"][0], results["victories_with_dnfs"][1], results["ties_with_dnfs"])
 
             await ctx.reply(msg)
