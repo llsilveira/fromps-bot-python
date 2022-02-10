@@ -40,6 +40,11 @@ class Games(enum.Enum):
         ["mm", "mmr", "majora", "majoras", "majora's"],
         0xae27cf,
     )
+    MCR = (
+        "Minish Cap Randomizer",
+        ["mc", "mcr"],
+        0x73C636,
+    )
     PKMN_CRYSTAL = (
         "Pokemon Crystal Full Item Randomizer",
         ["pkmn", "pokemon", "pkm", "poke", "pokémon"],
