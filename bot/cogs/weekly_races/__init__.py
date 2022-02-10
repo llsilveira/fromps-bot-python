@@ -7,7 +7,7 @@ from datatypes import Games, EntryStatus, WeeklyStatus, PlayerStatus
 
 from util import get_discord_name, time_to_timedelta, timedelta_to_str
 from util.ImageHashGenerator import ImageHashGenerator
-from bot.converters import GameConverter, TimeConverter, DatetimeConverter
+from bot.converters import GameConverter, TimeConverter, DatetimeConverter, DateConverter
 from bot.exceptions import FrompsBotException
 
 from . import embeds
@@ -898,6 +898,24 @@ class Weekly(commands.Cog, name="Semanais"):
         pass
 
     @stat.command(
+        name="confronto_periodo",
+        help="Mostra stats do confronto de dois jogadores.\nEste comando deve ser utilizado APENAS NO PRIVADO.",
+        brief="*NO PRIVADO* Mostra stats do confronto de dois jogadores.",
+        ignore_extra=False,
+        dm_only=True
+    )
+    async def stat_headtohead_dated(
+            self,
+            ctx,
+            codigo_do_jogo: GameConverter(),
+            id_do_jogador1: int,
+            id_do_jogador2: int,
+            data_inicial: DateConverter(),
+            data_final: DateConverter()
+    ):
+        await self.do_head_to_head(ctx, codigo_do_jogo, id_do_jogador1, id_do_jogador2, data_inicial, data_final)
+
+    @stat.command(
         name="confronto",
         help="Mostra stats do confronto de dois jogadores.\nEste comando deve ser utilizado APENAS NO PRIVADO.",
         brief="*NO PRIVADO* Mostra stats do confronto de dois jogadores.",
@@ -905,9 +923,9 @@ class Weekly(commands.Cog, name="Semanais"):
         dm_only=True
     )
     async def stat_headtohead(self, ctx, codigo_do_jogo: GameConverter(), id_do_jogador1: int, id_do_jogador2: int):
-        game = codigo_do_jogo
-        discord_id_1 = id_do_jogador1
-        discord_id_2 = id_do_jogador2
+        await self.do_head_to_head(ctx, codigo_do_jogo, id_do_jogador1, id_do_jogador2)
+
+    async def do_head_to_head(self, ctx, game, discord_id_1, discord_id_2, initial_date=None, final_date=None):
         self._check_admin(ctx.author)
 
         if discord_id_1 == discord_id_2:
@@ -921,7 +939,14 @@ class Weekly(commands.Cog, name="Semanais"):
             if player2 is None:
                 raise FrompsBotException("Não foi encontrado um jogador com id: %d" % discord_id_2)
 
-            values = self.db.get_head_to_head(session, game, player1.discord_id, player2.discord_id)
+            values = self.db.get_head_to_head(
+                session,
+                game,
+                player1.discord_id,
+                player2.discord_id,
+                initial_date,
+                final_date
+            )
             results = {
                 "matches": len(values),
                 "players": [player1, player2],
@@ -960,9 +985,9 @@ class Weekly(commands.Cog, name="Semanais"):
             msg = "Confrontos diretos entre **%s** e **%s** em **%s**\n\n" % (player1.name, player2.name, game)
             msg += "Número de partidas: **%d**\n" % results["matches"]
             msg += "DNFs: **%d x %d**\n" % (results["dnfs"][0], results["dnfs"][1])
-            msg += "Resultado (excluindo DNFs): **%d x %d** (**%d** empates)\n" %\
+            msg += "Resultado (excluindo DNFs): **%d x %d** (**%d** empates)\n" % \
                    (results["victories"][0], results["victories"][1], results["ties"])
-            msg += "Resultado (incluindo DNFs): **%d x %d** (**%d** empates)\n" %\
+            msg += "Resultado (incluindo DNFs): **%d x %d** (**%d** empates)\n" % \
                    (results["victories_with_dnfs"][0], results["victories_with_dnfs"][1], results["ties_with_dnfs"])
 
             await ctx.reply(msg)

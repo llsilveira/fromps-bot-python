@@ -1,7 +1,7 @@
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker, aliased
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from datatypes import PlayerStatus, EntryStatus, WeeklyStatus, LeaderboardStatus
 from database.model import Player, PlayerEntry, Weekly, Leaderboard, LeaderboardEntry, Base
@@ -292,7 +292,7 @@ class Database:
                 g for g in player.leaderboard_data["excluded_from"] if g != game.name
             ]
 
-    def get_head_to_head(self, session, game, player1_id, player2_id):
+    def get_head_to_head(self, session, game, player1_id, player2_id, initial_date=None, final_date=None):
         entry1 = aliased(PlayerEntry, name="entry1")
         entry2 = aliased(PlayerEntry, name="entry2")
         weekly = aliased(Weekly, name="weekly")
@@ -306,6 +306,14 @@ class Database:
                 weekly.game == game,
                 weekly.status == WeeklyStatus.CLOSED
             )
+
+        if initial_date is not None:
+            compare_time = datetime.combine(initial_date, datetime.min.time())
+            stmt = stmt.where(weekly.submission_end >= compare_time)
+
+        if final_date is not None:
+            compare_time = datetime.combine(final_date, datetime.min.time()) + timedelta(days=1)
+            stmt = stmt.where(weekly.submission_end < compare_time)
 
         values = session.execute(stmt).all()
         ret = {}

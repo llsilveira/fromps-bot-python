@@ -15,6 +15,16 @@ class DatetimeConverter(commands.Converter):
         return datetime.strptime(remove_emojis(argument), self.parse_format)
 
 
+class DateConverter(commands.Converter):
+    def __init__(self, parse_format="%d/%m/%Y", description_format="dd/mm/aaaa"):
+        self.parse_format = parse_format
+        self.description_format = description_format
+        super().__init__()
+
+    async def convert(self, ctx, argument):
+        return datetime.strptime(remove_emojis(argument), self.parse_format).date()
+
+
 class TimeConverter(commands.Converter):
     def __init__(self, parse_format="%H:%M:%S", description_format="H:MM:SS"):
         self.parse_format = parse_format

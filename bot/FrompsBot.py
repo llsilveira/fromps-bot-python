@@ -3,7 +3,7 @@ from discord.ext import commands
 
 from util import get_discord_name
 from .exceptions import FrompsBotException
-from .converters import TimeConverter, DatetimeConverter, GameConverter
+from .converters import TimeConverter, DatetimeConverter, DateConverter, GameConverter
 
 import logging
 logger = logging.getLogger(__name__)
@@ -174,6 +174,8 @@ class FrompsBot(commands.Bot):
                 await ctx.reply("O código informado não corresponde a um jogo conhecido.")
             elif isinstance(converter, DatetimeConverter):
                 await ctx.reply("A data e hora fornecidos devem estar no formato '%s'." % converter.description_format)
+            elif isinstance(converter, DateConverter):
+                await ctx.reply("A data fornecida deve estar no formato '%s'." % converter.description_format)
             elif isinstance(converter, TimeConverter):
                 await ctx.reply("O tempo fornecido deve estar no formato '%s'." % converter.description_format)
             else:
