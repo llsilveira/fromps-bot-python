@@ -40,9 +40,9 @@ class Games(enum.Enum):
         ["mm", "mmr", "majora", "majoras", "majora's"],
         0xae27cf,
     )
-    MCR = (
-        "Minish Cap Randomizer",
-        ["mc", "mcr"],
+    TMCR = (
+        "The Minish Cap Randomizer",
+        ["mc", "tmcr", "tmc", "minish"],
         0x73C636,
     )
     PKMN_CRYSTAL = (
