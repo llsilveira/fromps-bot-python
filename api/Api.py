@@ -22,6 +22,19 @@ class Api:
                     filter(lambda e: e.leaderboard_data.get("position", None) is not None, lb.entries),
                     key=lambda e: e.leaderboard_data["position"]
                 )
+
+                n_weeks = len(lb.leaderboard_data["weeklies"])
+                weeklies = {}
+                for e in entries:
+                    entry_weeklies = {}
+                    for w in range(n_weeks):
+                        key = str(w)
+                        if key in e.leaderboard_data["weeklies"]:
+                            entry_weeklies[key] = e.leaderboard_data["weeklies"][key]
+                        else:
+                            entry_weeklies[key] = {}
+                    weeklies[str(e.player_discord_id)] = entry_weeklies
+
                 return jsonify(
                     id=lb.id,
                     game=lb.game.name,
@@ -33,7 +46,7 @@ class Api:
                             "name": e.player.name,
                             "position": e.leaderboard_data["position"],
                             "points": e.leaderboard_data["final_points"],
-                            "weeklies": e.leaderboard_data["weeklies"]
+                            "weeklies": weeklies[str(e.player_discord_id)]
                         } for e in entries
                     ]
                 )
