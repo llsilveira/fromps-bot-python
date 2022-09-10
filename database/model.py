@@ -1,6 +1,6 @@
 from sqlalchemy.orm import declarative_base, relationship
 from sqlalchemy.ext.mutable import MutableDict
-from sqlalchemy import Column, Integer, BigInteger, String, Time, DateTime, Enum, ForeignKey, JSON
+from sqlalchemy import Column, Integer, BigInteger, String, Text, Time, DateTime, Enum, ForeignKey, JSON
 from datetime import datetime
 
 from datatypes import Games, PlayerStatus, EntryStatus, WeeklyStatus, LeaderboardStatus
@@ -82,3 +82,11 @@ class LeaderboardEntry(Base):
 
     leaderboard = relationship("Leaderboard", back_populates='entries')  # bi-directional
     player = relationship("Player", back_populates='leaderboard_entries')  # bi-directional
+
+
+class Game(Base):
+    __tablename__ = 'games'
+
+    game = Column(Enum(Games, native_enum=False, validate_strings=True, length=20), primary_key=True)
+    settings_text = Column(String, nullable=False)
+    verification_text = Column(String, nullable=False)

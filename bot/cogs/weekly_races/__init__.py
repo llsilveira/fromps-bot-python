@@ -184,7 +184,8 @@ class Weekly(commands.Cog, name="Semanais"):
                     " você pode fazê-lo utilizando o comando %svod" % (game, ctx.prefix)
                 )
 
-            embed = embeds.seed_embed(ctx, weekly, self.instructions)
+            gameData = self.db.get_game(session, game)
+            embed = embeds.seed_embed(ctx, weekly, gameData, self.instructions)
             await ctx.author.send(embed=embed)
             if commit:
                 session.commit()
@@ -493,7 +494,10 @@ class Weekly(commands.Cog, name="Semanais"):
             created_at=datetime.now(),
             submission_end=submission_end
         )
-        embed = embeds.seed_embed(ctx, weekly, self.instructions)
+
+        with self.db.Session() as session:
+            gameData = self.db.get_game(session, game)
+        embed = embeds.seed_embed(ctx, weekly, gameData, self.instructions)
         await ctx.author.send(embed=embed)
 
     @commands.command(
@@ -664,12 +668,66 @@ class Weekly(commands.Cog, name="Semanais"):
             )
 
     @commands.group(
+        name="game",
+        help="Gerencia os jogos.",
+        brief="Gerencia os jogos.",
+        invoke_without_command=True,
+        hidden=True,
+        dm_only=True
+    )
+    async def game(self, ctx):
+        raise FrompsBotException("Informe um subcomando")
+
+    @game.command(
+        name="settings",
+        help="Mostra ou altera a mensagem dos jogos",
+        brief="Mostra ou altera a mensagem dos jogos.",
+        hidden=True,
+        dm_only=True
+    )
+    async def game_settings(self, ctx, codigo_do_jogo: GameConverter(), *, mensagem: str = None):
+        game = codigo_do_jogo
+        message = mensagem
+        self._check_admin(ctx.author)
+
+        with self.db.Session() as session:
+            gameEntity = self.db.get_game(session, game)
+            if message is None:
+                await ctx.reply("Settings atuais: %s" % gameEntity.settings_text)
+            else:
+                gameEntity.settings_text = mensagem
+                session.commit()
+                await ctx.reply("Settings atualizadas com sucesso!")
+
+    @game.command(
+        name="verification_text",
+        help="Mostra ou altera o texto da mensagem de verificação da seed.",
+        brief="Mostra ou altera o texto da mensagem de verificação da seed.",
+        hidden=True,
+        dm_only=True
+    )
+    async def game_verification_text(self, ctx, codigo_do_jogo: GameConverter(), *, mensagem: str = None):
+        game = codigo_do_jogo
+        message = mensagem
+        self._check_admin(ctx.author)
+
+        with self.db.Session() as session:
+            gameEntity = self.db.get_game(session, game)
+            if message is None:
+                await ctx.reply("Texto atual: %s" % gameEntity.verification_text)
+            else:
+                gameEntity.verification_text = mensagem
+                session.commit()
+                await ctx.reply("Texto de verificação atualizado!")
+
+    @commands.group(
         name="leaderboard",
         aliases=['lb'],
         help="Mostra a leaderboard ativa.",
         brief="Mostra a leaderboard ativa.",
-        invoke_without_command=True,
+        hidden=True,
         ignore_extra=False,
+        signup_only=True,
     )
     async def leaderboard(self, ctx, codigo_do_jogo: GameConverter()):
         game = codigo_do_jogo
@@ -690,6 +748,7 @@ class Weekly(commands.Cog, name="Semanais"):
         help="Participar de uma leaderboard.\nIsso afeta apenas as seeds que solicitar após entrar na leaderboard. Caso"
              " tenha solicitado uma seed antes de entrar, seu resultado não será inserido na leaderboard.",
         brief="Participar de uma leaderboard.",
+        hidden=True,
         ignore_extra=False,
         signup_only=True
     )
@@ -711,6 +770,7 @@ class Weekly(commands.Cog, name="Semanais"):
              " resultado não será considerado na leaderboard.\nIsso afeta apenas as seeds que solicitar após sair da"
              " leaderboard. Caso tenha solicitado uma seed antes de sair, seu resultado será inserido na leaderboard.",
         brief="Deixar de participar de uma leaderboard.",
+        hidden=True,
         ignore_extra=False,
         signup_only=True
     )
@@ -730,8 +790,8 @@ class Weekly(commands.Cog, name="Semanais"):
         aliases=['o'],
         help="Abrir uma nova leaderboard.\nVocê não poderá abrir uma leaderboard se houver outra aberta para o mesmo jogo.\nEste comando deve ser utilizado APENAS NO PRIVADO.",
         brief="*NO PRIVADO* Abrir uma uma nova leaderboard.",
-        ignore_extra=False,
         hidden=True,
+        ignore_extra=False,
         dm_only=True
     )
     async def leaderboard_open(self, ctx, codigo_do_jogo: GameConverter(), url_dos_resultados=None):
@@ -762,8 +822,8 @@ class Weekly(commands.Cog, name="Semanais"):
         aliases=['x'],
         help="Fechar a leaderboard aberta.\nVocê não poderá fechar a leaderboard se houver uma semanal aberta.\nEste comando deve ser utilizado APENAS NO PRIVADO.",
         brief="*NO PRIVADO* Criar uma nova leaderboard.",
-        ignore_extra=False,
         hidden=True,
+        ignore_extra=False,
         dm_only=True
     )
     async def leaderboard_close(self, ctx, codigo_do_jogo: GameConverter()):
@@ -789,8 +849,8 @@ class Weekly(commands.Cog, name="Semanais"):
         aliases=['u'],
         help="Fechar a leaderboard aberta.\nVocê não poderá fechar a leaderboard se houver uma semanal aberta.\nEste comando deve ser utilizado APENAS NO PRIVADO.",
         brief="*NO PRIVADO* Criar uma nova leaderboard.",
-        ignore_extra=False,
         hidden=True,
+        ignore_extra=False,
         dm_only=True
     )
     async def leaderboard_update(self, ctx, codigo_do_jogo: GameConverter()):
@@ -901,6 +961,7 @@ class Weekly(commands.Cog, name="Semanais"):
         name="confronto_periodo",
         help="Mostra stats do confronto de dois jogadores.\nEste comando deve ser utilizado APENAS NO PRIVADO.",
         brief="*NO PRIVADO* Mostra stats do confronto de dois jogadores.",
+        hidden=True,
         ignore_extra=False,
         dm_only=True
     )
@@ -919,6 +980,7 @@ class Weekly(commands.Cog, name="Semanais"):
         name="confronto",
         help="Mostra stats do confronto de dois jogadores.\nEste comando deve ser utilizado APENAS NO PRIVADO.",
         brief="*NO PRIVADO* Mostra stats do confronto de dois jogadores.",
+        hidden=True,
         ignore_extra=False,
         dm_only=True
     )

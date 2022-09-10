@@ -4,7 +4,7 @@ from sqlalchemy.orm import sessionmaker, aliased
 from datetime import datetime, timedelta
 
 from datatypes import PlayerStatus, EntryStatus, WeeklyStatus, LeaderboardStatus
-from database.model import Player, PlayerEntry, Weekly, Leaderboard, LeaderboardEntry, Base
+from database.model import Player, PlayerEntry, Game, Weekly, Leaderboard, LeaderboardEntry, Base
 
 import logging
 logger = logging.getLogger(__name__)
@@ -201,6 +201,18 @@ class Database:
                 "Attempt to alter a VOD for a player that did not have submitted their VOD."
             )
         entry.vod_url = new_vod
+
+    def get_game(self, session, gameCode):
+        game = session.get(Game, gameCode)
+        if game is None:
+            game = Game(
+                game=gameCode,
+                settings_text="Change Me",
+                verification_text="Código de Verificação"
+            )
+            session.add(game)
+        return game
+
 
     def get_leaderboard(self, session, leaderboard_id):
         return session.get(Leaderboard, leaderboard_id)
