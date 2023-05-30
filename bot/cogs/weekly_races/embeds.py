@@ -9,16 +9,13 @@ def seed_embed(ctx, weekly, gameData, instructions):
     game = weekly.game
     description = instructions['ALL'] + "\n" + instructions[game]
 
-    # TODO: Set this with the game
     verification_text = gameData.verification_text
-    #if game == Games.HKR:
-    #    verification_text = "Item de Fury of the Fallen"
 
     description += "\n**Seed:** " + weekly.seed_url + "\n\n**" + verification_text + ":** "
     description = description.format(signup_channel=signup_channel, settings=gameData.settings_text)
 
     embed = discord.Embed(
-        title="RBR Semanal - %s" % weekly.game,
+        title="RBR Async - %s" % weekly.game,
         colour=discord.Colour(weekly.game.color),
         description=description
     )

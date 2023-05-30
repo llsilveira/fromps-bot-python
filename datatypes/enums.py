@@ -55,6 +55,11 @@ class Games(enum.Enum):
         ["sm", "smr", "metroid3", "m3", "m3r"],
         0x127C6A,
     )
+    SOTN = (
+        "Castlevania: Symphony of the Night",
+        ["sotn"],
+        0xAE2166,
+    )
     HKR = (
         "Hollow Knight Randomizer",
         ["hk", "hkr"],
