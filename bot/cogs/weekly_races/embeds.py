@@ -15,7 +15,7 @@ def seed_embed(ctx, weekly, gameData, instructions):
     description = description.format(signup_channel=signup_channel, settings=gameData.settings_text)
 
     embed = discord.Embed(
-        title="RBR Async - %s" % weekly.game,
+        title="RBR Apresenta - %s" % weekly.game,
         colour=discord.Colour(weekly.game.color),
         description=description
     )

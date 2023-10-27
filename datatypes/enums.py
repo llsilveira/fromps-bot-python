@@ -65,6 +65,36 @@ class Games(enum.Enum):
         ["hk", "hkr"],
         0xCCCCCC,
     )
+    JOHTO1 = (
+        "Pokemon Crystal Randomizer - Liga Johto",
+        ["johto1"],
+        0xFFCB06,
+    )
+    JOHTO2 = (
+        "Pokemon Crystal Randomizer - Liga Johto",
+        ["johto2"],
+        0xFFCB06,
+    )
+    JOHTO3 = (
+        "Pokemon Crystal Randomizer - Liga Johto",
+        ["johto3"],
+        0xFFCB06,
+    )
+    JOHTO4 = (
+        "Pokemon Crystal Randomizer - Liga Johto",
+        ["johto4"],
+        0xFFCB06,
+    )
+    JOHTO5 = (
+        "Pokemon Crystal Randomizer - Liga Johto",
+        ["johto5"],
+        0xFFCB06,
+    )
+    TESTE = (
+        "Pokemon Crystal Randomizer - Liga Johto - Teste",
+        ["teste"],
+        0xCCCCCC,
+    )
 
     def __init__(self, str, keys, color):
         self.str = str
